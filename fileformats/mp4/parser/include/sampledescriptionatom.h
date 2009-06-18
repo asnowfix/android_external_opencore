@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +52,14 @@
 
 #ifndef AMRSAMPLEENTRY_H_INCLUDED
 #include "amrsampleentry.h"
+#endif
+
+#ifndef QCELPSAMPLEENTRY_H_INCLUDED
+#include "qcelpsampleentry.h"
+#endif
+
+#ifndef EVRCSAMPLEENTRY_H_INCLUDED
+#include "evrcsampleentry.h"
 #endif
 
 #ifndef H263SAMPLEENTRY_H_INCLUDED
@@ -141,6 +150,16 @@ class SampleDescriptionAtom : public FullAtom
             return _pAMRSampleEntryAtom;
         }
 
+        QCELPSampleEntry *getQCELPSampleEntry()
+        {
+            return _pQCELPSampleEntryAtom;
+        }
+
+        EVRCSampleEntry *getEVRCSampleEntry()
+        {
+            return _pEVRCSampleEntryAtom;
+        }
+
         H263SampleEntry *getH263SampleEntry()
         {
             return _pH263SampleEntryAtom;
@@ -195,6 +214,8 @@ class SampleDescriptionAtom : public FullAtom
         uint32 _pMediaType;
 
         AMRSampleEntry  *_pAMRSampleEntryAtom;
+        QCELPSampleEntry  *_pQCELPSampleEntryAtom;
+        EVRCSampleEntry  *_pEVRCSampleEntryAtom;
         H263SampleEntry *_pH263SampleEntryAtom;
         Oscl_Vector<AVCSampleEntry*, OsclMemAllocator> *_pAVCSampleEntryVec;
         AVCSubSequenceEntry *_pavcSubSequenceEntry;
@@ -203,6 +224,8 @@ class SampleDescriptionAtom : public FullAtom
         bool _o3GPPAMR;
         bool _o3GPPH263;
         bool _o3GPPWBAMR;
+        bool _o3GPP2QCELP;
+        bool _o3GPP2EVRC;
         bool _oAVC;
 
         ProtectionSchemeInformationBox* _pProtectionSchemeInformationBox;

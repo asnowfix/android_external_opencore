@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,11 +62,15 @@ SampleDescriptionAtom::SampleDescriptionAtom(MP4_FF_FILE *fp,
 {
     _psampleEntryVec      = NULL;
     _pAMRSampleEntryAtom  = NULL;
+    _pQCELPSampleEntryAtom  = NULL;
+    _pEVRCSampleEntryAtom  = NULL;
     _pH263SampleEntryAtom = NULL;
     _pAVCSampleEntryVec   = NULL;
     _o3GPPAMR = false;
     _o3GPPH263 = false;
     _o3GPPWBAMR = false;
+    _o3GPP2QCELP = false;
+    _o3GPP2EVRC = false;
     _oAVC = false;
 
 
@@ -186,6 +191,62 @@ SampleDescriptionAtom::SampleDescriptionAtom(MP4_FF_FILE *fp,
                             else
                             {
                                 // Multiple AMR Sample Entries are illegal
+                                _success = false;
+                                _mp4ErrorCode = READ_SAMPLE_DESCRIPTION_ATOM_FAILED;
+                                return;
+                            }
+                        }
+                        else if (atomType == QCELP_SAMPLE_ENTRY_ATOM)
+                        {
+                            if (_o3GPP2QCELP == false)
+                            {
+                                PV_MP4_FF_NEW(fp->auditCB, QCELPSampleEntry, (fp, atomSize, atomType), _pQCELPSampleEntryAtom);
+
+                                if (!_pQCELPSampleEntryAtom->MP4Success())
+                                {
+                                    _success = false;
+                                    _mp4ErrorCode = _pQCELPSampleEntryAtom->GetMP4Error();
+                                    PV_MP4_FF_DELETE(NULL, QCELPSampleEntry, _pQCELPSampleEntryAtom);
+                                    _pQCELPSampleEntryAtom = NULL;
+                                    return;
+                                }
+                                else
+                                {
+                                    _pQCELPSampleEntryAtom->setParent(this);
+                                }
+                                _o3GPP2QCELP = true;
+                            }
+                            else
+                            {
+                                // Multiple QCELP Sample Entries are illegal
+                                _success = false;
+                                _mp4ErrorCode = READ_SAMPLE_DESCRIPTION_ATOM_FAILED;
+                                return;
+                            }
+                        }
+                        else if (atomType == EVRC_SAMPLE_ENTRY_ATOM)
+                        {
+                            if (_o3GPP2EVRC == false)
+                            {
+                                PV_MP4_FF_NEW(fp->auditCB, EVRCSampleEntry, (fp, atomSize, atomType), _pEVRCSampleEntryAtom);
+
+                                if (!_pEVRCSampleEntryAtom->MP4Success())
+                                {
+                                    _success = false;
+                                    _mp4ErrorCode = _pEVRCSampleEntryAtom->GetMP4Error();
+                                    PV_MP4_FF_DELETE(NULL, EVRCSampleEntry, _pEVRCSampleEntryAtom);
+                                    _pEVRCSampleEntryAtom = NULL;
+                                    return;
+                                }
+                                else
+                                {
+                                    _pEVRCSampleEntryAtom->setParent(this);
+                                }
+                                _o3GPP2EVRC = true;
+                            }
+                            else
+                            {
+                                // Multiple EVRC Sample Entries are illegal
                                 _success = false;
                                 _mp4ErrorCode = READ_SAMPLE_DESCRIPTION_ATOM_FAILED;
                                 return;
@@ -397,6 +458,18 @@ SampleDescriptionAtom::~SampleDescriptionAtom()
         _pAMRSampleEntryAtom = NULL;
     }
 
+    if (_pQCELPSampleEntryAtom != NULL)
+    {
+        PV_MP4_FF_DELETE(NULL, QCELPSampleEntry, _pQCELPSampleEntryAtom);
+        _pQCELPSampleEntryAtom = NULL;
+    }
+
+    if (_pEVRCSampleEntryAtom != NULL)
+    {
+        PV_MP4_FF_DELETE(NULL, EVRCSampleEntry, _pEVRCSampleEntryAtom);
+        _pEVRCSampleEntryAtom = NULL;
+    }
+
     if (_pH263SampleEntryAtom != NULL)
     {
         PV_MP4_FF_DELETE(NULL, H263SampleEntry, _pH263SampleEntryAtom);
@@ -413,6 +486,16 @@ SampleDescriptionAtom::~SampleDescriptionAtom()
             {
                 AMRSampleEntry *ptr = (AMRSampleEntry *)(*_psampleEntryVec)[i];
                 PV_MP4_FF_DELETE(NULL, AMRSampleEntry, ptr);
+            }
+            else if (pSampleEntryPtr->getType() == QCELP_SAMPLE_ENTRY_ATOM)
+            {
+                QCELPSampleEntry *ptr = (QCELPSampleEntry *)(*_psampleEntryVec)[i];
+                PV_MP4_FF_DELETE(NULL, QCELPSampleEntry, ptr);
+            }
+            else if (pSampleEntryPtr->getType() == EVRC_SAMPLE_ENTRY_ATOM)
+            {
+                EVRCSampleEntry *ptr = (EVRCSampleEntry *)(*_psampleEntryVec)[i];
+                PV_MP4_FF_DELETE(NULL, EVRCSampleEntry, ptr);
             }
             else if (pSampleEntryPtr->getType() == AUDIO_SAMPLE_ENTRY)
             {
@@ -551,6 +634,16 @@ uint8  SampleDescriptionAtom::getObjectTypeIndication()
     if (_o3GPPWBAMR)
     {
         return (AMRWB_AUDIO_3GPP);
+    }
+
+    if (_o3GPP2QCELP)
+    {
+        return (QCELP_AUDIO_3GPP2);
+    }
+
+    if (_o3GPP2EVRC)
+    {
+        return (EVRC_AUDIO_3GPP2);
     }
 
     if (_o3GPPH263)
@@ -839,6 +932,14 @@ void SampleDescriptionAtom::getMIMEType(OSCL_String& aMimeType)
     else if (objectType == AMRWB_AUDIO_3GPP)
     {
         mimeType.set(PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF));
+    }
+    else if (objectType == QCELP_MP4 || objectType == QCELP_AUDIO_3GPP2)
+    {
+        mimeType.set(PVMF_MIME_QCELP, oscl_strlen(PVMF_MIME_QCELP));
+    }
+    else if (objectType == EVRC_MP4 || objectType == EVRC_AUDIO_3GPP2)
+    {
+        mimeType.set(PVMF_MIME_EVRC, oscl_strlen(PVMF_MIME_EVRC));
     }
     else if (objectType == MPEG4_AUDIO)
     {

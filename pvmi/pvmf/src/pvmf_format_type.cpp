@@ -144,6 +144,7 @@ OSCL_EXPORT_REF bool PVMFFormatType::isFile() const
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_AMRFF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_AACFF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_MP3FF) == 0) ||
+            (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_QCPFF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_WAVFF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_ASFFF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_RMFF) == 0) ||

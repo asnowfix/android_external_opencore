@@ -16,6 +16,7 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES := $(PV_INCLUDES) \
     $(PV_TOP)/engines/common/include \
     $(PV_TOP)/fileformats/mp4/parser/include \
+    $(PV_TOP)/fileformats/qcp/parser/include \
     $(PV_TOP)/pvmi/media_io/pvmiofileoutput/include \
     $(PV_TOP)/nodes/pvmediaoutputnode/include \
     $(PV_TOP)/nodes/pvmediainputnode/include \

@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2304,6 +2305,14 @@ OSCL_EXPORT_REF bool PVMFOMXBaseDecNode::SendInputBufferToOMXComponent()
                 iCurrentMsgMarkerBit = PVMF_MEDIA_DATA_MARKER_INFO_M_BIT;
             }
 
+            //Force marker bit for QCELP/EVRC streaming formats (marker bit may not be set even though full frames are present)
+            if (iInPort && (
+                        (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_QCELP) ||
+                        (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_EVRC)
+                    ))
+            {
+                iCurrentMsgMarkerBit = PVMF_MEDIA_DATA_MARKER_INFO_M_BIT;
+            }
 
             // logging info:
             if (iDataIn->getNumFragments() > 1)
@@ -3977,6 +3986,16 @@ void PVMFOMXBaseDecNode::DoPrepare(PVMFOMXBaseDecNodeCommand& aCmd)
                      format == PVMF_MIME_AMRWB)
             {
                 aInputParameters.cComponentRole = (OMX_STRING)"audio_decoder.amrwb";
+                aOutputParameters = (AudioOMXConfigParserOutputs *)oscl_malloc(sizeof(AudioOMXConfigParserOutputs));
+            }
+            else if (format == PVMF_MIME_QCELP)
+            {
+                aInputParameters.cComponentRole = (OMX_STRING)"audio_decoder.Qcelp13";
+                aOutputParameters = (AudioOMXConfigParserOutputs *)oscl_malloc(sizeof(AudioOMXConfigParserOutputs));
+            }
+            else if (format == PVMF_MIME_EVRC)
+            {
+                aInputParameters.cComponentRole = (OMX_STRING)"audio_decoder.evrc";
                 aOutputParameters = (AudioOMXConfigParserOutputs *)oscl_malloc(sizeof(AudioOMXConfigParserOutputs));
             }
             else if (format == PVMF_MIME_MP3)

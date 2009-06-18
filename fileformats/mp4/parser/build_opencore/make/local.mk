@@ -20,6 +20,8 @@ INCSRCDIR := ../../include
 
 SRCS := 3gpp_amrdecoderspecificinfo.cpp \
 	3gpp_h263decoderspecificinfo.cpp \
+	3gpp2_evrcdecoderspecificinfo.cpp \
+	3gpp2_qcelpdecoderspecificinfo.cpp \
 	amrdecoderspecificinfo.cpp \
 	amrsampleentry.cpp \
 	assetinfoatoms.cpp \
@@ -49,6 +51,7 @@ SRCS := 3gpp_amrdecoderspecificinfo.cpp \
 	esdescriptor.cpp \
 	es_id_inc.cpp \
 	es_id_ref.cpp \
+	evrcsampleentry.cpp \
 	expandablebaseclass.cpp \
 	filetypeatom.cpp \
 	fontrecord.cpp \
@@ -85,6 +88,7 @@ SRCS := 3gpp_amrdecoderspecificinfo.cpp \
 	objectdescriptoratom.cpp \
 	oma2boxes.cpp \
 	pvuserdataatom.cpp \
+	qcelpsampleentry.cpp \
 	sampledescriptionatom.cpp \
 	sampleentry.cpp \
 	samplesizeatom.cpp \

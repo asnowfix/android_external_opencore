@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2078,6 +2079,35 @@ int32 MovieAtom::getNumAMRFramesPerSample(uint32 trackID)
     }
 }
 
+int32 MovieAtom::getNumQCELPFramesPerSample(uint32 trackID)
+{
+    TrackAtom *trackAtom;
+    trackAtom = getTrackForID(trackID);
+
+    if (trackAtom != NULL)
+    {
+        return (trackAtom->getNumQCELPFramesPerSample());
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+int32 MovieAtom::getNumEVRCFramesPerSample(uint32 trackID)
+{
+    TrackAtom *trackAtom;
+    trackAtom = getTrackForID(trackID);
+
+    if (trackAtom != NULL)
+    {
+        return (trackAtom->getNumEVRCFramesPerSample());
+    }
+    else
+    {
+        return 0;
+    }
+}
 
 MP4_ERROR_CODE MovieAtom::getMaxTrackTimeStamp(uint32 trackID,
         uint32 fileSize,

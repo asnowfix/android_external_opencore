@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -212,6 +213,8 @@ PVMFMP4FFParserNode::PVMFMP4FFParserNode(int32 aPriority) :
              iCapability.iInputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_MPEG4FF));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_AMR_IETF));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_AMRWB_IETF));
+             iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_QCELP));
+             iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_EVRC));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_MPEG4_AUDIO));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_M4V));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_H2631998));
@@ -2168,6 +2171,62 @@ PVMFStatus PVMFMP4FFParserNode::DoRequestPort(PVMFMP4FFParserNodeCommand& aCmd, 
         }
         trackportinfo.iNumSamples = trackportinfo.iNumAMRSamplesToRetrieve;
     }
+    else if (formattype == PVMF_MIME_QCELP)
+    {
+        if (trackportinfo.iNumQCELPSamplesToRetrieve > 0)
+        {
+            trackportinfo.iNumSamples = trackportinfo.iNumQCELPSamplesToRetrieve;
+        }
+        else
+        {
+            // Need to determine the number of QCELP samples to get based on
+            // number of frames to get and number of frames per sample
+            int32 framespersample = iMP4FileHandle->getNumQCELPFramesPerSample(trackid);
+            if (framespersample > 0)
+            {
+                trackportinfo.iNumQCELPSamplesToRetrieve = QCELP_NUMFRAMES / framespersample;
+                if (trackportinfo.iNumQCELPSamplesToRetrieve == 0 || (QCELP_NUMFRAMES % framespersample > 0))
+                {
+                    // Increment if 0 or if there is a remainder
+                    ++trackportinfo.iNumQCELPSamplesToRetrieve;
+                }
+            }
+            else
+            {
+                // Assume 1 QCELP frame per sample
+                trackportinfo.iNumQCELPSamplesToRetrieve = QCELP_NUMFRAMES;
+            }
+        }
+        trackportinfo.iNumSamples = trackportinfo.iNumQCELPSamplesToRetrieve;
+    }
+    else if (formattype == PVMF_MIME_EVRC)
+    {
+        if (trackportinfo.iNumEVRCSamplesToRetrieve > 0)
+        {
+            trackportinfo.iNumSamples = trackportinfo.iNumEVRCSamplesToRetrieve;
+        }
+        else
+        {
+            // Need to determine the number of EVRC samples to get based on
+            // number of frames to get and number of frames per sample
+            int32 framespersample = iMP4FileHandle->getNumEVRCFramesPerSample(trackid);
+            if (framespersample > 0)
+            {
+                trackportinfo.iNumEVRCSamplesToRetrieve = EVRC_NUMFRAMES / framespersample;
+                if (trackportinfo.iNumEVRCSamplesToRetrieve == 0 || (EVRC_NUMFRAMES % framespersample > 0))
+                {
+                    // Increment if 0 or if there is a remainder
+                    ++trackportinfo.iNumEVRCSamplesToRetrieve;
+                }
+            }
+            else
+            {
+                // Assume 1 EVRC frame per sample
+                trackportinfo.iNumEVRCSamplesToRetrieve = EVRC_NUMFRAMES;
+            }
+        }
+        trackportinfo.iNumSamples = trackportinfo.iNumEVRCSamplesToRetrieve;
+    }
     else if (formattype == PVMF_MIME_3GPP_TIMEDTEXT)
     {
         trackportinfo.iNumSamples = TIMEDTEXT_NUMSAMPLES;
@@ -2255,6 +2314,16 @@ void PVMFMP4FFParserNode::GetTrackMaxParameters(PVMFFormatType aFormatType, uint
     {
         aMaxDataSize = AMRWB_IETF_MAXTRACKDATASIZE;
         aMaxQueueDepth = AMRWB_IETF_MAXTRACKQUEUEDEPTH;
+    }
+    else if (aFormatType == PVMF_MIME_QCELP)
+    {
+        aMaxDataSize = QCELP_MAXTRACKDATASIZE;
+        aMaxQueueDepth = QCELP_MAXTRACKQUEUEDEPTH;
+    }
+    else if (aFormatType == PVMF_MIME_EVRC)
+    {
+        aMaxDataSize = EVRC_MAXTRACKDATASIZE;
+        aMaxQueueDepth = EVRC_MAXTRACKQUEUEDEPTH;
     }
     else if (aFormatType == PVMF_MIME_3GPP_TIMEDTEXT)
     {
@@ -6562,6 +6631,14 @@ bool PVMFMP4FFParserNode::MapMP4ErrorCodeToEventCode(int32 aMP4ErrCode, PVUuid& 
             aEventCode = PVMFMP4FFParserErrAMRSampleEntryReadFailed;
             break;
 
+        case READ_QCELP_SAMPLE_ENTRY_FAILED:
+            aEventCode = PVMFMP4FFParserErrQCELPSampleEntryReadFailed;
+            break;
+
+        case READ_EVRC_SAMPLE_ENTRY_FAILED:
+            aEventCode = PVMFMP4FFParserErrEVRCSampleEntryReadFailed;
+            break;
+
         case READ_H263_SAMPLE_ENTRY_FAILED:
             aEventCode = PVMFMP4FFParserErrH263SampleEntryReadFailed;
             break;
@@ -8630,7 +8707,9 @@ uint32 PVMFMP4FFParserNode::GetNumAudioChannels(uint32 aId)
 
     if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR, oscl_strlen(PVMF_MIME_AMR)) == 0) ||
             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
-            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0))
+            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0) ||
+            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_QCELP, oscl_strlen(PVMF_MIME_QCELP)) == 0) ||
+            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_EVRC, oscl_strlen(PVMF_MIME_EVRC)) == 0))
     {
         //always mono
         num_channels = 1;
@@ -8674,7 +8753,9 @@ uint32 PVMFMP4FFParserNode::GetAudioSampleRate(uint32 aId)
     iMP4FileHandle->getTrackMIMEType(aId, trackMIMEType);
 
     if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR, oscl_strlen(PVMF_MIME_AMR)) == 0) ||
-            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0))
+            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
+            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_QCELP, oscl_strlen(PVMF_MIME_QCELP)) == 0) ||
+            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_EVRC, oscl_strlen(PVMF_MIME_EVRC)) == 0))
     {
         //always 8KHz
         sample_rate = 8000;

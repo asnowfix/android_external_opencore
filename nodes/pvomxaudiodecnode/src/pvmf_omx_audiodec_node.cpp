@@ -157,6 +157,10 @@ PVMFOMXAudioDecNode::PVMFOMXAudioDecNode(int32 aPriority) :
 
              iCapability.iOutputFormatCapability.push_back(PVMF_MIME_PCM16);
 
+             iCapability.iOutputFormatCapability.push_back(PVMF_MIME_QCELP);
+
+             iCapability.iOutputFormatCapability.push_back(PVMF_MIME_EVRC);
+
              iAvailableMetadataKeys.reserve(PVMF_OMXAUDIODEC_NUM_METADATA_VALUES);
              iAvailableMetadataKeys.clear();
             );
@@ -602,6 +606,16 @@ PVMFStatus PVMFOMXAudioDecNode::HandlePortReEnable()
         // of samples it places in an output buffer, so we can create an output buffer of arbitrary size
         // and let the decoder control how it is filled
         iSamplesPerFrame = 0; // unknown
+    }
+    else if (Format == PVMF_MIME_QCELP)
+    {
+        // QCELP has fs=8khz Mono and the frame is 20ms long, i.e. there is 160 samples per frame
+        iSamplesPerFrame = PVOMXAUDIODEC_QCELP_SAMPLES_PER_FRAME;
+    }
+    else if (Format == PVMF_MIME_EVRC)
+    {
+        // EVRC has fs=8khz Mono and the frame is 20ms long, i.e. there is 160 samples per frame
+        iSamplesPerFrame = PVOMXAUDIODEC_EVRC_SAMPLES_PER_FRAME;
     }
 
     // is this output port?
@@ -1408,6 +1422,14 @@ bool PVMFOMXAudioDecNode::NegotiateComponentParameters(OMX_PTR aOutputParameters
     {
         iOMXAudioCompressionFormat = OMX_AUDIO_CodingWMA;
     }
+    else if (Format == PVMF_MIME_QCELP)
+    {
+        iOMXAudioCompressionFormat = OMX_AUDIO_CodingQCELP13;
+    }
+    else if (Format == PVMF_MIME_EVRC)
+    {
+        iOMXAudioCompressionFormat = OMX_AUDIO_CodingEVRC;
+    }
     else
     {
         // Illegal codec specified.
@@ -1464,6 +1486,8 @@ bool PVMFOMXAudioDecNode::GetSetCodecSpecificInfo()
     OMX_AUDIO_PARAM_AMRTYPE Audio_Amr_Param;
     OMX_AUDIO_PARAM_MP3TYPE Audio_Mp3_Param;
     OMX_AUDIO_PARAM_WMATYPE Audio_Wma_Param;
+    OMX_AUDIO_PARAM_QCELP13TYPE Audio_Qcelp_Param;
+    OMX_AUDIO_PARAM_EVRCTYPE Audio_Evrc_Param;
     OMX_ERRORTYPE Err = OMX_ErrorNone;
     PVMFFormatType Format = PVMF_MIME_FORMAT_UNKNOWN;
 
@@ -1516,6 +1540,22 @@ bool PVMFOMXAudioDecNode::GetSetCodecSpecificInfo()
         Audio_Wma_Param.nPortIndex = iInputPortIndex;
 
         CONFIG_SIZE_AND_VERSION(Audio_Wma_Param);
+    }
+    else if (Format == PVMF_MIME_QCELP)
+    {
+        CodecProfilePtr = (OMX_PTR) & Audio_Qcelp_Param;
+        CodecProfileIndx = OMX_IndexParamAudioQcelp13;
+        Audio_Qcelp_Param.nPortIndex = iInputPortIndex;
+
+        CONFIG_SIZE_AND_VERSION(Audio_Qcelp_Param);
+    }
+    else if (Format == PVMF_MIME_EVRC)
+    {
+        CodecProfilePtr = (OMX_PTR) & Audio_Evrc_Param;
+        CodecProfileIndx = OMX_IndexParamAudioEvrc;
+        Audio_Evrc_Param.nPortIndex = iInputPortIndex;
+
+        CONFIG_SIZE_AND_VERSION(Audio_Evrc_Param);
     }
 
     // first get parameters:
@@ -1602,6 +1642,14 @@ bool PVMFOMXAudioDecNode::GetSetCodecSpecificInfo()
     {
         Audio_Wma_Param.eFormat = OMX_AUDIO_WMAFormatUnused; // set this initially
     }
+    else if (Format == PVMF_MIME_QCELP)
+    {
+        // nothing to do here
+    }
+    else if (Format == PVMF_MIME_EVRC)
+    {
+        // nothing to do here
+    }
     else
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
@@ -1658,14 +1706,26 @@ bool PVMFOMXAudioDecNode::GetSetCodecSpecificInfo()
         // and let the decoder control how it is filled
         iSamplesPerFrame = 0; // unknown
     }
+    else if (Format == PVMF_MIME_QCELP)
+    {
+        // QCELP has fs=8khz Mono and the frame is 20ms long, i.e. there is 160 samples per frame
+        iSamplesPerFrame = PVOMXAUDIODEC_QCELP_SAMPLES_PER_FRAME;
+    }
+    else if (Format == PVMF_MIME_EVRC)
+    {
+        // EVRC has fs=8khz Mono and the frame is 20ms long, i.e. there is 160 samples per frame
+        iSamplesPerFrame = PVOMXAUDIODEC_EVRC_SAMPLES_PER_FRAME;
+    }
 
     // iSamplesPerFrame depends on the codec.
     // for AAC: iSamplesPerFrame = 1024
     // for AAC+: iSamplesPerFrame = 2048
     // for AMRNB: iSamplesPerFrame = 160
     // for AMRWB: iSamplesPerFrame = 320
-    // for MP3:   iSamplesPerFrame = unknown, but either 1152 or 576 (we pick 1152 as default)
-    // for WMA:    unknown (iSamplesPerFrame is set to 0)
+    // for MP3:	  iSamplesPerFrame = unknown, but either 1152 or 576 (we pick 1152 as default)
+    // for WMA:	   unknown (iSamplesPerFrame is set to 0)
+    // for QCELP: iSamplesPerFrame = 160
+    // for EVRC: iSamplesPerFrame = 160
 
     // GET the output buffer params and sizes
     OMX_AUDIO_PARAM_PCMMODETYPE Audio_Pcm_Param;
@@ -1788,7 +1848,9 @@ bool PVMFOMXAudioDecNode::InitDecoder(PVMFSharedMediaDataPtr& DataIn)
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMR ||
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB_IETF ||
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB ||
-             ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_MP3)
+             ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_MP3 ||
+             ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_QCELP ||
+             ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_EVRC)
     {
         initbuffer = NULL; // no special config header. Need to decode 1 frame
         initbufsize = 0;
@@ -2590,7 +2652,9 @@ PVMFStatus PVMFOMXAudioDecNode::DoGetNodeMetadataValue(PVMFOMXBaseDecNodeCommand
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB_IETF) ||
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB) ||
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_MP3) ||
-                    (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_WMA)
+                    (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_WMA) ||
+                    (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_QCELP) ||
+                    (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_EVRC)
 
                )
             {
@@ -2648,6 +2712,14 @@ PVMFStatus PVMFOMXAudioDecNode::DoGetNodeMetadataValue(PVMFOMXBaseDecNodeCommand
                     else if (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_WMA)
                     {
                         valuelen = oscl_strlen(_STRLIT_CHAR(PVMF_MIME_WMA)) + 1;
+                    }
+                    else if (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_QCELP)
+                    {
+                        valuelen = oscl_strlen(_STRLIT_CHAR(PVMF_MIME_QCELP)) + 1;
+                    }
+                    else if (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_EVRC)
+                    {
+                        valuelen = oscl_strlen(_STRLIT_CHAR(PVMF_MIME_EVRC)) + 1;
                     }
                     else
                     {
@@ -2716,6 +2788,14 @@ PVMFStatus PVMFOMXAudioDecNode::DoGetNodeMetadataValue(PVMFOMXBaseDecNodeCommand
                         else if (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_WMA)
                         {
                             oscl_strncpy(KeyVal.value.pChar_value, _STRLIT_CHAR(PVMF_MIME_WMA), valuelen);
+                        }
+                        else if (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_QCELP)
+                        {
+                            oscl_strncpy(KeyVal.value.pChar_value, _STRLIT_CHAR(PVMF_MIME_QCELP), valuelen);
+                        }
+                        else if (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_EVRC)
+                        {
+                            oscl_strncpy(KeyVal.value.pChar_value, _STRLIT_CHAR(PVMF_MIME_EVRC), valuelen);
                         }
                         else
                         {
@@ -2955,7 +3035,9 @@ uint32 PVMFOMXAudioDecNode::GetNumMetadataValues(PVMFMetadataList& aKeyList)
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB_IETF) ||
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB) ||
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_MP3) ||
-                    (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_WMA)
+                    (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_WMA) ||
+                    (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_QCELP) ||
+                    (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_EVRC)
 
                )
 
@@ -3143,6 +3225,14 @@ PVMFStatus PVMFOMXAudioDecNode::DoCapConfigVerifyParameters(PvmiKvp* aParameters
     else if (aInputs.iMimeType ==  PVMF_MIME_WMA)
     {
         aInputParameters.cComponentRole = (OMX_STRING)"audio_decoder.wma";
+    }
+    else if (aInputs.iMimeType == PVMF_MIME_QCELP)
+    {
+        aInputParameters.cComponentRole = (OMX_STRING)"audio_decoder.Qcelp13";
+    }
+    else if (aInputs.iMimeType == PVMF_MIME_EVRC)
+    {
+        aInputParameters.cComponentRole = (OMX_STRING)"audio_decoder.evrc";
     }
     else
     {

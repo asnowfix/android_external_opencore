@@ -11,6 +11,9 @@ LOCAL_WHOLE_STATIC_LIBRARIES := \
  	libpvmp3ff \
  	libpvmp3ffparsernode \
  	libpvmp3ffrecognizer \
+ 	libpvqcpparser \
+ 	libpvqcpffparsernode \
+ 	libpvqcpffrecognizer \
  	libpvmp4ff \
  	libmp4recognizer_utility \
  	libpvaacparser \
@@ -42,6 +45,9 @@ include   $(PV_TOP)/pvmi/recognizer/plugins/pvamrffrecognizer/Android.mk
 include   $(PV_TOP)/fileformats/mp3/parser/Android.mk
 include   $(PV_TOP)/nodes/pvmp3ffparsernode/Android.mk
 include   $(PV_TOP)/pvmi/recognizer/plugins/pvmp3ffrecognizer/Android.mk
+include   $(PV_TOP)/fileformats/qcp/parser/Android.mk
+include   $(PV_TOP)/nodes/pvqcpffparsernode/Android.mk
+include   $(PV_TOP)/pvmi/recognizer/plugins/pvqcpffrecognizer/Android.mk
 include   $(PV_TOP)/fileformats/mp4/parser/Android.mk
 include   $(PV_TOP)/fileformats/mp4/parser/utils/mp4recognizer/Android.mk
 include   $(PV_TOP)/fileformats/rawaac/parser/Android.mk

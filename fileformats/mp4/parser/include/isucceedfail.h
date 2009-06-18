@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -193,6 +194,8 @@ typedef enum {  READ_FAILED = -1,
                 READ_UDTA_LOC_FAILED = 149,
                 NOT_PROGRESSIVE_STREAMABLE = 150,
                 READ_PIXELASPECTRATIO_BOX_FAILED = 151,
+                READ_QCELP_SAMPLE_ENTRY_FAILED = 152,
+                READ_EVRC_SAMPLE_ENTRY_FAILED = 153,
 
                 EXCEED_MAX_LIMIT_SUPPORTED_FOR_TOTAL_TRACKS
 

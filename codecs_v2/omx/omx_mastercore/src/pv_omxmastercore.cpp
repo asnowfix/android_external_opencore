@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -916,6 +917,16 @@ OMX_BOOL PV_OMXConfigParser(
             else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.mp3"))
             {
                 aInputs.iMimeType = PVMF_MIME_MP3;
+
+            }
+            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.Qcelp13"))
+            {
+                aInputs.iMimeType = PVMF_MIME_QCELP;
+
+            }
+            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.evrc"))
+            {
+                aInputs.iMimeType = PVMF_MIME_EVRC;
 
             }
             else

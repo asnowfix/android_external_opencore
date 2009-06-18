@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,6 +85,10 @@ DecoderConfigDescriptor::DecoderConfigDescriptor(MP4_FF_FILE *fp)
                         PV_MP4_FF_NEW(fp->auditCB, AMRDecoderSpecificInfo, (fp), _pdecSpecificInfo);
                     }
                     else if (_objectTypeIndication == QCELP_MP4)
+                    {
+                        PV_MP4_FF_NEW(fp->auditCB, DecoderSpecificInfo, (fp), _pdecSpecificInfo);
+                    }
+                    else if (_objectTypeIndication == EVRC_MP4)
                     {
                         PV_MP4_FF_NEW(fp->auditCB, DecoderSpecificInfo, (fp), _pdecSpecificInfo);
                     }

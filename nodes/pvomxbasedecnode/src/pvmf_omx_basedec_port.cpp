@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -94,7 +95,9 @@ OSCL_EXPORT_REF bool PVMFOMXDecPort::IsFormatSupported(PVMFFormatType aFmt)
                        (aFmt == PVMF_MIME_AMRWB_IETF) ||
                        (aFmt == PVMF_MIME_AMRWB) ||
                        (aFmt == PVMF_MIME_MP3) ||
-                       (aFmt == PVMF_MIME_WMA)
+                       (aFmt == PVMF_MIME_WMA) ||
+                       (aFmt == PVMF_MIME_QCELP) ||
+                       (aFmt == PVMF_MIME_EVRC)
                       );
     }
 

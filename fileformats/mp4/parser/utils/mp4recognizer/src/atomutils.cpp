@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -580,12 +581,16 @@ AtomUtils::getNextAtomType(MP4_FF_FILE *fp, uint32 &size, uint32 &type)
             type == PV_CONTENT_TYPE_ATOM ||
             type == AMR_SAMPLE_ENTRY_ATOM ||
             type == AMRWB_SAMPLE_ENTRY_ATOM ||
+            type == QCELP_SAMPLE_ENTRY_ATOM ||
+            type == EVRC_SAMPLE_ENTRY_ATOM ||
             type == H263_SAMPLE_ENTRY_ATOM ||
             type == AUDIO_SAMPLE_ENTRY ||
             type == VIDEO_SAMPLE_ENTRY ||
             type == MPEG_SAMPLE_ENTRY ||
             type == UUID_ATOM ||
             type == AMR_SPECIFIC_ATOM ||
+            type == QCELP_SPECIFIC_ATOM ||
+            type == EVRC_SPECIFIC_ATOM ||
             type == H263_SPECIFIC_ATOM ||
 
 

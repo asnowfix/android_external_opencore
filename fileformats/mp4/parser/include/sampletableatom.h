@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -480,6 +481,16 @@ class SampleTableAtom : public Atom
             return _numAMRFramesPerSample;
         }
 
+        int32 getNumQCELPFramesPerSample()
+        {
+            return _numQCELPFramesPerSample;
+        }
+
+        int32 getNumEVRCFramesPerSample()
+        {
+            return _numEVRCFramesPerSample;
+        }
+
         MP4_ERROR_CODE getMaxTrackTimeStamp(uint32 fileSize, uint32& timeStamp);
 
         MP4_ERROR_CODE getSampleNumberClosestToTimeStamp(uint32 &sampleNumber,
@@ -572,6 +583,8 @@ class SampleTableAtom : public Atom
         uint32  _IsUpdateFileSize;
 
         int32 _numAMRFramesPerSample;
+        int32 _numQCELPFramesPerSample;
+        int32 _numEVRCFramesPerSample;
 
         uint8 *_pAMRTempBuffer;
         bool  _oResidualSample;
