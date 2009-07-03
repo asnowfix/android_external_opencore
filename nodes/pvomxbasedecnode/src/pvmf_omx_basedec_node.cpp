@@ -5473,10 +5473,15 @@ void PVMFOMXBaseDecNode::DoCancelAllCommands(PVMFOMXBaseDecNodeCommand& aCmd)
 
     //next cancel all queued commands
     {
+        uint32 activeCmds = 1;
         //start at element 1 since this cancel command is element 0.
-        while (iInputCommands.size() > 1)
+        while (iInputCommands.size() > activeCmds)
         {
-            CommandComplete(iInputCommands, iInputCommands[1], PVMFErrCancelled);
+            //don't cancel cmds which are posted after cancelall cmd
+            if(aCmd.iId > iInputCommands[activeCmds].iId)
+                CommandComplete(iInputCommands, iInputCommands[activeCmds], PVMFErrCancelled);
+            else
+                ++activeCmds;
         }
     }
 
