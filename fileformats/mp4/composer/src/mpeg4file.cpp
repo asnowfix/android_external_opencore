@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -207,6 +208,7 @@ PVA_FF_Mpeg4File::init(int32 mediaType,
     _oWMFTrack  = false;
     _oPVMMTrack = false;
     _oMPEGTrack = false;
+    _o3GPP2Track = false;
 
     _oFileRenderCalled = false;
     _oUserDataPopulated = false;
@@ -539,6 +541,11 @@ PVA_FF_Mpeg4File::addTrack(int32 mediaType,
             _o3GPPTrack = true;
             _oMPEGTrack = true;
         }
+        if ((codecType == CODEC_TYPE_QCELP_AUDIO) ||
+            (codecType == CODEC_TYPE_EVRC_AUDIO))
+        {
+            _o3GPP2Track = true;
+        }
     }
 
     if ((uint32) mediaType == MEDIA_TYPE_VISUAL)
@@ -616,6 +623,12 @@ PVA_FF_Mpeg4File::addTrack(int32 mediaType,
         // just added (with a 1-based index NOT a zero-based index)
         TrackID = pmediatrack->getTrackID();
     }
+
+    if (_o3GPP2Track == true)
+    {
+       _o3GPPTrack = false;
+    }
+
     recomputeSize();
     return (TrackID);
 }
@@ -815,6 +828,41 @@ PVA_FF_Mpeg4File::addSampleToTrack(uint32 trackID,
                                 }
 
                             }
+                            if (_oInterLeaveEnabled)
+                            {
+                                if (!addMediaSampleInterleave(trackID, fragmentList, size, ts, flags))
+                                {
+                                    return false;
+                                }
+                            }
+                            else
+                            {
+                                // Add to mdat PVA_FF_Atom for the specified track
+                                if (!mdatAtom->addRawSample(fragmentList, size, mediaType, codecType))
+                                {
+                                    retVal = false;
+                                }
+                                // Add to moov atom (in turn adds to tracks)
+                                _pmovieAtom->addSampleToTrack(trackID, fragmentList, size,
+                                                              ts, flags);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                if ((mediaTrack->getCodecType() == CODEC_TYPE_QCELP_AUDIO) ||
+                    (mediaTrack->getCodecType() == CODEC_TYPE_EVRC_AUDIO))
+                {
+                    if (size >= 1)
+                    {
+                        PVA_FF_TrackAtom *track = _pmovieAtom->getMediaTrack(trackID);
+                        if (track != NULL)
+                        {
+                            // FT is in the first byte that comes off the encoder
+                            flags = *((uint8*)(fragmentList.front().ptr));
                             if (_oInterLeaveEnabled)
                             {
                                 if (!addMediaSampleInterleave(trackID, fragmentList, size, ts, flags))
@@ -1280,6 +1328,11 @@ PVA_FF_Mpeg4File::renderToFileStream(MP4_AUTHOR_FF_FILE_IO_WRAP *fp)
             setMajorBrand(BRAND_3GPP4);
             setMajorBrandVersion(VERSION_3GPP4);
         }
+        else if (_o3GPP2Track)
+        {
+            setMajorBrand(BRAND_3GP2B);
+            setMajorBrandVersion(VERSION_3GP2B);
+        }
         else if (_oMPEGTrack)
         {
             setMajorBrand(BRAND_MPEG4);
@@ -1297,6 +1350,12 @@ PVA_FF_Mpeg4File::renderToFileStream(MP4_AUTHOR_FF_FILE_IO_WRAP *fp)
         if (_o3GPPTrack)
         {
             addCompatibleBrand(BRAND_3GPP4);
+        }
+        if (_o3GPP2Track)
+        {
+            addCompatibleBrand(BRAND_3GP2B);
+            addCompatibleBrand(BRAND_3GPP4);
+            addCompatibleBrand(BRAND_3GPP6);
         }
         if (_oPVMMTrack)
         {
@@ -1317,7 +1376,7 @@ PVA_FF_Mpeg4File::renderToFileStream(MP4_AUTHOR_FF_FILE_IO_WRAP *fp)
         _pmovieAtom->getMutableMovieHeaderAtom().setModificationTime(time);
     }
 
-    if ((_o3GPPTrack == true) || (_oPVMMTrack == true) || (_oMPEGTrack == true))
+    if ((_o3GPPTrack == true) || (_oPVMMTrack == true) || (_oMPEGTrack == true) || (_o3GPP2Track == true))
     {
         _pFileTypeAtom->renderToFileStream(fp);
 
@@ -1878,6 +1937,11 @@ PVA_FF_Mpeg4File::renderTruncatedFile(PVA_FF_UNICODE_STRING_PARAM filename)
         setMajorBrand(BRAND_3GPP4);
         setMajorBrandVersion(VERSION_3GPP4);
     }
+    else if (_o3GPP2Track)
+    {
+        setMajorBrand(BRAND_3GP2B);
+        setMajorBrandVersion(VERSION_3GP2B);
+    }
     else if (_oMPEGTrack)
     {
         setMajorBrand(BRAND_MPEG4);
@@ -1896,6 +1960,12 @@ PVA_FF_Mpeg4File::renderTruncatedFile(PVA_FF_UNICODE_STRING_PARAM filename)
     {
         addCompatibleBrand(BRAND_3GPP4);
     }
+    if (_o3GPP2Track)
+    {
+        addCompatibleBrand(BRAND_3GP2B);
+        addCompatibleBrand(BRAND_3GPP4);
+        addCompatibleBrand(BRAND_3GPP6);
+    }
     if (_oPVMMTrack)
     {
         addCompatibleBrand(PVMM_BRAND);
@@ -1906,7 +1976,7 @@ PVA_FF_Mpeg4File::renderTruncatedFile(PVA_FF_UNICODE_STRING_PARAM filename)
     }
     addCompatibleBrand(BRAND_3GPP5);
 
-    if ((_o3GPPTrack == true) || (_oPVMMTrack == true) || (_oMPEGTrack == true))
+    if ((_o3GPPTrack == true) || (_oPVMMTrack == true) || (_oMPEGTrack == true) || (_o3GPP2Track == true))
     {
         _pFileTypeAtom->renderToFileStream(&fp);
     }
@@ -2444,6 +2514,11 @@ PVA_FF_Mpeg4File::prepareToEncode()
             setMajorBrandVersion(VERSION_3GPP4);
         }
     }
+    else if (_o3GPP2Track)
+    {
+        setMajorBrand(BRAND_3GP2B);
+        setMajorBrandVersion(VERSION_3GP2B);
+    }
     else if (_oMPEGTrack)
     {
         setMajorBrand(BRAND_MPEG4);
@@ -2464,6 +2539,13 @@ PVA_FF_Mpeg4File::prepareToEncode()
             addCompatibleBrand(BRAND_3GPP6);
         else
             addCompatibleBrand(BRAND_3GPP4);
+    }
+    if (_o3GPP2Track)
+    {
+        addCompatibleBrand(BRAND_3GP2B);
+        addCompatibleBrand(BRAND_3GPP4);
+        addCompatibleBrand(BRAND_3GPP5);
+        addCompatibleBrand(BRAND_3GPP6);
     }
     if (_oPVMMTrack)
     {

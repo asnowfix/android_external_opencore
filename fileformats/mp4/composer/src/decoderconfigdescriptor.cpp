@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,6 +64,10 @@ PVA_FF_DecoderConfigDescriptor::init(int32 mediaType)
             {
                 case CODEC_TYPE_AAC_AUDIO:
                     _objectTypeIndication = 0x40;
+                    break;
+
+                case CODEC_TYPE_QCELP_AUDIO:
+                    _objectTypeIndication = 0xE1;
                     break;
 
                 default:

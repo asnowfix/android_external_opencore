@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -284,6 +285,8 @@ class PVMp4FFComposerNode : public PVMFNodeInterface,
         PVMFStatus AddMemFragToTrack(Oscl_Vector<OsclMemoryFragment, OsclMemAllocator> aFrame, OsclRefCounterMemFrag& aMemFrag, PVMFFormatType aFormat,
                                      uint32& aTimestamp, int32 aTrackId, PVMp4FFComposerPort *aPort);
         int32 GetIETFFrameSize(uint8 aFrameType, int32 aCodecType);
+        int32 GetQCELPFrameSize(uint8 aBitRate);
+        int32 GetEVRCFrameSize(uint8 aBitRate);
 
         /////////////////////////////////////////////////////
         //    Progress and max size / duration routines

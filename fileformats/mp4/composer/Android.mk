@@ -24,6 +24,8 @@ LOCAL_SRC_FILES := \
  	src/esdescriptor.cpp \
  	src/es_id_inc.cpp \
  	src/es_id_ref.cpp \
+	src/evrcdecoderspecificinfo3gpp2.cpp \
+ 	src/evrcsampleentry.cpp \
  	src/expandablebaseclass.cpp \
  	src/filetypeatom.cpp \
  	src/fullatom.cpp \
@@ -43,6 +45,8 @@ LOCAL_SRC_FILES := \
  	src/mpeg4file.cpp \
  	src/mpeg4mediaheaderatom.cpp \
  	src/mpegsampleentry.cpp \
+	src/qcelpdecoderspecificinfo3gpp2.cpp \
+ 	src/qcelpsampleentry.cpp \
  	src/sampledescriptionatom.cpp \
  	src/sampleentry.cpp \
  	src/samplesizeatom.cpp \

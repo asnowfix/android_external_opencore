@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,6 +61,20 @@ PVA_FF_InterLeaveBuffer::PVA_FF_InterLeaveBuffer(uint32 mediaType,
                 (uint8 *)(oscl_malloc(sizeof(uint8) * AMR_WB_INTERLEAVE_BUFFER_SIZE));
 
             _maxInterLeaveBufferSize = AMR_WB_INTERLEAVE_BUFFER_SIZE;
+        }
+        if (codecType == CODEC_TYPE_QCELP_AUDIO)
+        {
+            _interLeaveBuffer =
+                (uint8 *)(oscl_malloc(sizeof(uint8) * QCELP_INTERLEAVE_BUFFER_SIZE));
+
+            _maxInterLeaveBufferSize = QCELP_INTERLEAVE_BUFFER_SIZE;
+        }
+        if (codecType == CODEC_TYPE_EVRC_AUDIO)
+        {
+            _interLeaveBuffer =
+                (uint8 *)(oscl_malloc(sizeof(uint8) * EVRC_INTERLEAVE_BUFFER_SIZE));
+
+            _maxInterLeaveBufferSize = EVRC_INTERLEAVE_BUFFER_SIZE;
         }
     }
 

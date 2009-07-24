@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +32,8 @@
 #include "mpegsampleentry.h"
 #include "decoderspecificinfo.h"
 #include "amrsampleentry.h"
+#include "qcelpsampleentry.h"
+#include "evrcsampleentry.h"
 #include "h263sampleentry.h"
 #include "avcsampleentry.h"
 #include "textsampleentry.h"
@@ -118,6 +121,20 @@ PVA_FF_SampleDescriptionAtom::init(int32 mediaType, uint32 protocol, uint8 profi
                 entry->setParent(this);
                 entry->recomputeSize();
             }
+            else if (_codecType == CODEC_TYPE_QCELP_AUDIO)
+            {
+                PV_MP4_FF_NEW(fp->auditCB, PVA_FF_QCELPSampleEntry, (QCELP_SAMPLE_ENTRY), entry);
+                addSampleEntry(entry);
+                entry->setParent(this);
+                entry->recomputeSize();
+            }
+            else if (_codecType == CODEC_TYPE_EVRC_AUDIO)
+            {
+                PV_MP4_FF_NEW(fp->auditCB, PVA_FF_EVRCSampleEntry, (EVRC_SAMPLE_ENTRY), entry);
+                addSampleEntry(entry);
+                entry->setParent(this);
+                entry->recomputeSize();
+            }
         }
         break;
         case MEDIA_TYPE_VISUAL:
@@ -184,6 +201,18 @@ PVA_FF_SampleDescriptionAtom::~PVA_FF_SampleDescriptionAtom()
             {
                 PVA_FF_AMRSampleEntry* audioentry = OSCL_STATIC_CAST(PVA_FF_AMRSampleEntry*, entry);
                 PV_MP4_FF_DELETE(NULL, PVA_FF_AMRSampleEntry, audioentry);
+
+            }
+            else if (type == QCELP_SAMPLE_ENTRY)
+            {
+                PVA_FF_QCELPSampleEntry* audioentry = OSCL_STATIC_CAST(PVA_FF_QCELPSampleEntry*, entry);
+                PV_MP4_FF_DELETE(NULL, PVA_FF_QCELPSampleEntry, audioentry);
+
+            }
+            else if (type == EVRC_SAMPLE_ENTRY)
+            {
+                PVA_FF_EVRCSampleEntry* audioentry = OSCL_STATIC_CAST(PVA_FF_EVRCSampleEntry*, entry);
+                PV_MP4_FF_DELETE(NULL, PVA_FF_EVRCSampleEntry, audioentry);
 
             }
             else if (type == H263_SAMPLE_ENTRY)
@@ -410,6 +439,11 @@ PVA_FF_SampleDescriptionAtom::nextSample(uint32 size, uint8 flags)
                 entry->nextSampleSize(size);
                 nReturn = 1;
             }
+            else if ((_codecType == CODEC_TYPE_QCELP_AUDIO) ||
+                     (_codecType == CODEC_TYPE_EVRC_AUDIO))
+            {
+                nReturn = 1;
+            }
             else
             {
                 unsigned short mode_set = 0;
@@ -512,6 +546,14 @@ PVA_FF_SampleDescriptionAtom::addSampleEntry(PVA_FF_SampleEntry *entry)
                 _psampleEntryVec->push_back(entry);
             }
             else if (entry->getType() == AMR_WB_SAMPLE_ENTRY)
+            {
+                _psampleEntryVec->push_back(entry);
+            }
+            else if (entry->getType() == QCELP_SAMPLE_ENTRY)
+            {
+                _psampleEntryVec->push_back(entry);
+            }
+            else if (entry->getType() == EVRC_SAMPLE_ENTRY)
             {
                 _psampleEntryVec->push_back(entry);
             }

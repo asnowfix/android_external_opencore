@@ -39,6 +39,8 @@ SRCS := amrdecoderspecificinfo3gpp.cpp \
 	esdescriptor.cpp \
 	es_id_inc.cpp \
 	es_id_ref.cpp \
+	evrcdecoderspecificinfo3gpp2.cpp \
+	evrcsampleentry.cpp \
 	expandablebaseclass.cpp \
 	filetypeatom.cpp \
 	fullatom.cpp \
@@ -58,6 +60,8 @@ SRCS := amrdecoderspecificinfo3gpp.cpp \
 	mpeg4file.cpp \
 	mpeg4mediaheaderatom.cpp \
 	mpegsampleentry.cpp \
+	qcelpdecoderspecificinfo3gpp2.cpp \
+	qcelpsampleentry.cpp \
 	sampledescriptionatom.cpp \
 	sampleentry.cpp \
 	samplesizeatom.cpp \

@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -163,6 +164,8 @@ const uint32    BRAND_3GPP4 = FourCharConstToUint32('3', 'g', 'p', '4');
 const uint32    BRAND_3GPP5 = FourCharConstToUint32('3', 'g', 'p', '5');
 const uint32    BRAND_3GPP6 = FourCharConstToUint32('3', 'g', 'p', '6');
 const uint32    BRAND_MPEG4 = FourCharConstToUint32('m', 'p', '4', '1');
+const uint32    BRAND_3GP2A = FourCharConstToUint32('3', 'g', '2', 'a');
+const uint32    BRAND_3GP2B = FourCharConstToUint32('3', 'g', '2', 'b');
 
 const uint32    TREF_TYPE_OD = FourCharConstToUint32('m', 'p', 'o', 'd');
 const uint32    TREF_TYPE_DEPEND = FourCharConstToUint32('d', 'p', 'n', 'd');
@@ -170,8 +173,12 @@ const uint32    TREF_TYPE_DEPEND = FourCharConstToUint32('d', 'p', 'n', 'd');
 const uint32    TEXT_SAMPLE_ENTRY = FourCharConstToUint32('t', 'x', '3', 'g');
 const uint32    AMR_SAMPLE_ENTRY = FourCharConstToUint32('s', 'a', 'm', 'r');
 const uint32    AMR_WB_SAMPLE_ENTRY = FourCharConstToUint32('s', 'a', 'w', 'b');
+const uint32    QCELP_SAMPLE_ENTRY = FourCharConstToUint32('s', 'q', 'c', 'p');
+const uint32    EVRC_SAMPLE_ENTRY = FourCharConstToUint32('s', 'e', 'v', 'c');
 const uint32    H263_SAMPLE_ENTRY = FourCharConstToUint32('s', '2', '6', '3');
 const uint32    AMR_SPECIFIC_ATOM = FourCharConstToUint32('d', 'a', 'm', 'r');
+const uint32    QCELP_SPECIFIC_ATOM = FourCharConstToUint32('d', 'q', 'c', 'p');
+const uint32    EVRC_SPECIFIC_ATOM = FourCharConstToUint32('d', 'e', 'v', 'c');
 const uint32    H263_SPECIFIC_ATOM = FourCharConstToUint32('d', '2', '6', '3');
 const uint32    AVC_SAMPLE_ENTRY = FourCharConstToUint32('a', 'v', 'c', '1');
 const uint32    AVC_CONFIGURATION_BOX = FourCharConstToUint32('a', 'v', 'c', 'C');
@@ -215,12 +222,16 @@ const uint32    MOVIE_FRAGMENT_RANDOM_ACCESS_OFFSET_ATOM = FourCharConstToUint32
 #define VERSION_MMP4  0x00000001
 #define VERSION_3GPP5 0x00000100
 #define VERSION_3GPP6 0x00000600
+#define VERSION_3GP2A 0x00010000
+#define VERSION_3GP2B 0x00020000
 
 typedef enum
 {
     CODEC_TYPE_AMR_AUDIO = 1,
     CODEC_TYPE_AAC_AUDIO = 2,
-    CODEC_TYPE_AMR_WB_AUDIO = 3
+    CODEC_TYPE_AMR_WB_AUDIO = 3,
+    CODEC_TYPE_QCELP_AUDIO = 4,
+    CODEC_TYPE_EVRC_AUDIO = 5
 } AUDIO_CODEC_TYPES;
 
 typedef enum
@@ -248,6 +259,8 @@ typedef enum
 
 #define AMR_INTERLEAVE_BUFFER_SIZE    2048
 #define AMR_WB_INTERLEAVE_BUFFER_SIZE 4096
+#define QCELP_INTERLEAVE_BUFFER_SIZE  2048
+#define EVRC_INTERLEAVE_BUFFER_SIZE   2048
 #define AAC_INTERLEAVE_BUFFER_SIZE   12000  // Calc with 96 Kbps as max
 #define VIDEO_INTERLEAVE_BUFFER_SIZE 256000
 #define TEXT_INTERLEAVE_BUFFER_SIZE  12000
