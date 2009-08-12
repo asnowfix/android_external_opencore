@@ -72,11 +72,14 @@ class SampleEntry : public Atom
         virtual uint16 getWidth() const;
         virtual uint16 getHeight() const;
 
-
     protected:
         // Reserved constants
         uint8 _reserved[6];
         uint16 _dataReferenceIndex;
+        uint32 sampleEntrySize;
+
+    public:
+        virtual uint32 getSampleEntrySize() const;
 };
 
 #endif // SAMPLEENTRY_H_INCLUDED
