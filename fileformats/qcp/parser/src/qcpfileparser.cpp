@@ -96,8 +96,10 @@ int32 QcpBitstreamObject::refill()
         else
         {
             //there is no more data to read.
-            if (iBytesRead >= iFileSize || iBytesProcessed >= iFileSize)
+            if (iBytesRead > iFileSize || iBytesProcessed > iFileSize)
                 return QcpBitstreamObject::DATA_INSUFFICIENT;
+            if (iBytesRead == iFileSize || iBytesProcessed == iFileSize)
+                return QcpBitstreamObject::EVERYTHING_OK;
         }
     }
 
