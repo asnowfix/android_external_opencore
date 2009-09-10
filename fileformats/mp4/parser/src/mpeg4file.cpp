@@ -1770,8 +1770,47 @@ uint64 Mpeg4File::getMovieDuration() const
     }
     else if (_pmovieAtom != NULL)
     {
+        uint numTracks = _pmovieAtom->getNumTracks();
+        uint32 *trackList  = (uint32 *) oscl_malloc(sizeof(uint32) * numTracks);
+        if (! trackList)
+            return 0;   // malloc failure
+        _pmovieAtom->getTrackWholeIDList(trackList);
+        uint32 prevTrackDuration = 0, trackDuration = 0;
+        for (uint32 i = 0; i < numTracks; i++)
+        {
+            TrackDurationInfo* pTrackDurationInfo = (*_pTrackDurationContainer->_pTrackdurationInfoVec)[i];
+            trackDuration = pTrackDurationInfo->trackDuration;
+            if (prevTrackDuration > trackDuration)
+            {
+                trackDuration = prevTrackDuration;
+            }
+            else
+            {
+                prevTrackDuration = trackDuration;
+                id = trackList[i];
+            }
+        }
+        oscl_free(trackList);
+
+        TrackAtom *trackAtom = NULL;
+        uint32 mediaTimeScale = 0xFFFFFFFE;
+
+        trackAtom = _pmovieAtom->getTrackForID(id);
+        if (trackAtom != NULL)
+        {
+            mediaTimeScale = trackAtom->getMediaTimescale();
+            if (mediaTimeScale != 0)
+            {
+                Oscl_Int64_Utils::set_uint64(overallMovieDuration, 0, trackDuration);
+                overallMovieDuration = (overallMovieDuration * (uint64)getMovieTimescale()) / (uint64)mediaTimeScale;
+            }
+        }
+
+        if (overallMovieDuration < _pmovieAtom->getDuration()) {
+            overallMovieDuration = _pmovieAtom->getDuration();
+        }
         // Get the overall duration of the Mpeg-4 presentation
-        return _pmovieAtom->getDuration();
+        return overallMovieDuration;
     }
     return 0;
 }
