@@ -63,8 +63,10 @@ SampleTableAtom::SampleTableAtom(MP4_FF_FILE *fp,
     _psampleSizeAtom        = NULL;
     _psampleToChunkAtom     = NULL;
     _pchunkOffsetAtom       = NULL;
+    _pchunkLargeOffsetAtom  = NULL;
     _psyncSampleAtom        = NULL;
 
+    chunk_large_offset_exists = 0;
     _SDIndex = 0;
 
     SamplesCount = 0;
@@ -307,6 +309,23 @@ SampleTableAtom::SampleTableAtom(MP4_FF_FILE *fp,
                 _pchunkOffsetAtom->setParent(this);
                 count -= _pchunkOffsetAtom->getSize();
             }
+            else if (atomType == CHUNK_LARGE_OFFSET_ATOM)
+            {
+                //"co64"
+                PV_MP4_FF_NEW(fp->auditCB, ChunkLargeOffsetAtom, (fp, atomSize, atomType, filename, parsingMode), _pchunkLargeOffsetAtom);
+
+                // Check for success
+                if (!_pchunkLargeOffsetAtom->MP4Success())
+                {
+                    _success = false;
+                    _mp4ErrorCode = _pchunkLargeOffsetAtom->GetMP4Error();
+                    PVMF_MP4FFPARSER_LOGERROR((0, "ERROR =>SampleTableAtom::Chunk Large Offset atom failed"));
+                    return;
+                }
+                _pchunkLargeOffsetAtom->setParent(this);
+                count -= _pchunkLargeOffsetAtom->getSize();
+				chunk_large_offset_exists = 1;
+            }
             else if (atomType == SYNC_SAMPLE_ATOM)
             {
                 //"stss"
@@ -401,7 +420,7 @@ SampleTableAtom::SampleTableAtom(MP4_FF_FILE *fp,
                 (_psampleDescriptionAtom == NULL) ||
                 (_psampleSizeAtom == NULL)        ||
                 (_psampleToChunkAtom == NULL)     ||
-                (_pchunkOffsetAtom == NULL))
+                ((_pchunkOffsetAtom == NULL) && _pchunkLargeOffsetAtom == NULL))
         {
             _success = false;
             _mp4ErrorCode = READ_SAMPLE_TABLE_ATOM_FAILED;
@@ -464,6 +483,11 @@ SampleTableAtom::~SampleTableAtom()
         PV_MP4_FF_DELETE(NULL, ChunkOffsetAtom, _pchunkOffsetAtom);
     }
 
+    if (_pchunkLargeOffsetAtom != NULL)
+    {
+        PV_MP4_FF_DELETE(NULL, ChunkLargeOffsetAtom, _pchunkLargeOffsetAtom);
+    }
+
     if (_psyncSampleAtom != NULL)
     {
         PV_MP4_FF_DELETE(NULL, SyncSampleAtom, _psyncSampleAtom);
@@ -499,7 +523,7 @@ SampleTableAtom::getSample(uint32 sampleNum, uint8 *buf, int32 &size, uint32 &in
 {
     if ((_psampleSizeAtom    == NULL) ||
             (_psampleToChunkAtom == NULL) ||
-            (_pchunkOffsetAtom   == NULL))
+            ((_pchunkOffsetAtom   == NULL) && (_pchunkLargeOffsetAtom == NULL)))
     {
         size = 0;
         return DEFAULT_ERROR;
@@ -542,7 +566,11 @@ SampleTableAtom::getSample(uint32 sampleNum, uint8 *buf, int32 &size, uint32 &in
     }
 
     // Find chunk offset to file
-    int32 offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+    int32 offset;
+    if(!chunk_large_offset_exists)
+     offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+    else
+     offset = _pchunkLargeOffsetAtom->getChunkOffsetAt(chunk);
     //uint32 offset to int32, possible error for large files
     if (offset == PV_ERROR)
     {
@@ -706,7 +734,11 @@ MP4_ERROR_CODE SampleTableAtom::getKeyMediaSampleNumAt(uint32 aKeySampleNum,
         int32 first = _psampleToChunkAtom->getFirstSampleNumInChunk(chunk);
 
         // Find chunk offset to file
-        int32 offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        int32 offset;
+        if(!chunk_large_offset_exists)
+         offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        else
+	     offset = _pchunkLargeOffsetAtom->getChunkOffsetAt(chunk);
 
         //uint32 offset to int32, possible error for large files
         if (offset == PV_ERROR)
@@ -782,7 +814,11 @@ MP4_ERROR_CODE SampleTableAtom::getKeyMediaSampleNumAt(uint32 aKeySampleNum,
         uint32 offsetIntoRunOfChunks =
             (_currentPlaybackSampleNumber - FirstSampleNumInChunk);
 
-        int32 offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        int32 offset;
+        if(!chunk_large_offset_exists)
+         offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        else
+         offset = _pchunkLargeOffsetAtom->getChunkOffsetAt(chunk);
 
         if (offset == PV_ERROR)
         {
@@ -909,7 +945,11 @@ SampleTableAtom::getPrevKeyMediaSample(uint32 inputtimestamp, uint32 &aKeySample
         int32 first = _psampleToChunkAtom->getFirstSampleNumInChunk(chunk);
 
         // Find chunk offset to file
-        int32 offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        int32 offset;
+        if(!chunk_large_offset_exists)
+         offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        else
+         offset = _pchunkLargeOffsetAtom->getChunkOffsetAt(chunk);
 
         //uint32 offset to int32, possible error for large files
         if (offset == PV_ERROR)
@@ -985,7 +1025,11 @@ SampleTableAtom::getPrevKeyMediaSample(uint32 inputtimestamp, uint32 &aKeySample
         uint32 offsetIntoRunOfChunks =
             (_currentPlaybackSampleNumber - FirstSampleNumInChunk);
 
-        int32 offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        int32 offset;
+        if(!chunk_large_offset_exists)
+         offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        else
+         offset = _pchunkLargeOffsetAtom->getChunkOffsetAt(chunk);
 
         if (offset == PV_ERROR)
         {
@@ -1112,7 +1156,11 @@ SampleTableAtom::getNextKeyMediaSample(uint32 inputtimestamp, uint32 &aKeySample
         int32 first = _psampleToChunkAtom->getFirstSampleNumInChunk(chunk);
 
         // Find chunk offset to file
-        int32 offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        int32 offset;
+        if(!chunk_large_offset_exists)
+         offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        else
+         offset = _pchunkLargeOffsetAtom->getChunkOffsetAt(chunk);
 
         //uint32 offset to int32, possible error for large files
         if (offset == PV_ERROR)
@@ -1188,7 +1236,11 @@ SampleTableAtom::getNextKeyMediaSample(uint32 inputtimestamp, uint32 &aKeySample
         uint32 offsetIntoRunOfChunks =
             (_currentPlaybackSampleNumber - FirstSampleNumInChunk);
 
-        int32 offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        int32 offset;
+        if(!chunk_large_offset_exists)
+         offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        else
+         offset = _pchunkLargeOffsetAtom->getChunkOffsetAt(chunk);
 
         if (offset == PV_ERROR)
         {
@@ -1407,7 +1459,7 @@ int32 SampleTableAtom::queryRepositionTime(int32 time, bool oDependsOn, bool bBe
     if ((_psampleSizeAtom    == NULL) ||
             (_psampleToChunkAtom == NULL) ||
             (_ptimeToSampleAtom  == NULL) ||
-            (_pchunkOffsetAtom   == NULL))
+            ((_pchunkOffsetAtom   == NULL) && (_pchunkLargeOffsetAtom   == NULL)))
     {
         return 0;
     }
@@ -1561,7 +1613,7 @@ int32 SampleTableAtom::resetPlayBackbyTime(int32 time, bool oDependsOn)
     if ((_psampleSizeAtom    == NULL) ||
             (_psampleToChunkAtom == NULL) ||
             (_ptimeToSampleAtom  == NULL) ||
-            (_pchunkOffsetAtom   == NULL))
+            ((_pchunkOffsetAtom   == NULL) && (_pchunkLargeOffsetAtom   == NULL)))
     {
         return 0;
     }
@@ -1840,7 +1892,11 @@ int32 SampleTableAtom::resetPlayBackbyTime(int32 time, bool oDependsOn)
         uint32 offsetIntoRunOfChunks =
             (_currentPlaybackSampleNumber - FirstSampleNumInChunk);
 
-        int32 offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        int32 offset;
+        if(!chunk_large_offset_exists)
+         offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        else
+         offset = _pchunkLargeOffsetAtom->getChunkOffsetAt(chunk);
 
         if (offset == PV_ERROR)
         {
@@ -1886,7 +1942,11 @@ check_for_file_pointer_reset:
         int32 first = _psampleToChunkAtom->getFirstSampleNumInChunk(chunk);
 
         // Find chunk offset to file
-        int32 offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        int32 offset;
+        if(!chunk_large_offset_exists)
+         offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        else
+         offset = _pchunkLargeOffsetAtom->getChunkOffsetAt(chunk);
 
         //uint32 offset to int32, possible error for large files
         if (offset == PV_ERROR)
@@ -2252,7 +2312,7 @@ SampleTableAtom::getNextBundledAccessUnits(uint32 *n,
     if ((_psampleSizeAtom    == NULL) ||
             (_psampleToChunkAtom == NULL) ||
             (_ptimeToSampleAtom  == NULL) ||
-            (_pchunkOffsetAtom   == NULL))
+            ((_pchunkOffsetAtom == NULL) && (_pchunkLargeOffsetAtom == NULL)))
     {
         return (nReturn);
     }
@@ -2312,7 +2372,7 @@ SampleTableAtom::peekNextBundledAccessUnits(uint32 *n,
     if ((_psampleSizeAtom    == NULL) ||
             (_psampleToChunkAtom == NULL) ||
             (_ptimeToSampleAtom  == NULL) ||
-            (_pchunkOffsetAtom   == NULL))
+            ((_pchunkOffsetAtom == NULL) && (_pchunkLargeOffsetAtom == NULL)))
     {
         return -1;
     }
@@ -2465,7 +2525,11 @@ SampleTableAtom::getNextNSamples(uint32 startSampleNum,
 
 
         // Find chunk offset to file
-        int32 offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        int32 offset;
+        if(!chunk_large_offset_exists)
+         offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        else
+         offset = _pchunkLargeOffsetAtom->getChunkOffsetAt(chunk);
 
 
         if (offset == PV_ERROR)
@@ -2998,7 +3062,11 @@ SampleTableAtom::peekNextNSamples(uint32 startSampleNum,
         int32 first = _psampleToChunkAtom->getFirstSampleNumInChunkPeek();
 
         // Find chunk offset to file
-        int32 sampleSizeOffset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        int32 sampleSizeOffset;
+        if(!chunk_large_offset_exists)
+         sampleSizeOffset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        else
+         sampleSizeOffset = _pchunkLargeOffsetAtom->getChunkOffsetAt(chunk);
         if (sampleSizeOffset == PV_ERROR)
         {
             *n = 0;
@@ -3092,7 +3160,7 @@ int32 SampleTableAtom::getOffsetByTime(uint32 ts, int32* sampleFileOffset)
     if ((_psampleSizeAtom    == NULL) ||
             (_psampleToChunkAtom == NULL) ||
             (_ptimeToSampleAtom == NULL) ||
-            (_pchunkOffsetAtom   == NULL))
+            ((_pchunkOffsetAtom == NULL) && (_pchunkLargeOffsetAtom == NULL)))
     {
         return DEFAULT_ERROR;
     }
@@ -3131,7 +3199,11 @@ int32 SampleTableAtom::getOffsetByTime(uint32 ts, int32* sampleFileOffset)
     int32 first = _psampleToChunkAtom->getFirstSampleNumInChunk(chunk);
 
     // Find chunk offset to file
-    int32 offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        int32 offset;
+        if(!chunk_large_offset_exists)
+         offset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        else
+         offset = _pchunkLargeOffsetAtom->getChunkOffsetAt(chunk);
     if (offset == PV_ERROR)
     {
         return DEFAULT_ERROR;
@@ -3191,15 +3263,22 @@ SampleTableAtom::getMaxTrackTimeStamp(uint32 fileSize, uint32& timeStamp)
      */
     int32 chunk;
 
-    int32 retVal =
-        _pchunkOffsetAtom->getChunkClosestToOffset(fileSize, chunk);
+    int32 retVal;
+    if(!chunk_large_offset_exists)
+     retVal = _pchunkOffsetAtom->getChunkClosestToOffset(fileSize, chunk);
+    else
+     retVal = _pchunkLargeOffsetAtom->getChunkClosestToOffset(fileSize, chunk);
 
     if (retVal == EVERYTHING_FINE)
     {
         /*
          * Get chunk offset for the chunk
          */
-        int32 chunkOffset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        int32 chunkOffset;
+        if(!chunk_large_offset_exists)
+         chunkOffset = _pchunkOffsetAtom->getChunkOffsetAt(chunk);
+        else
+         chunkOffset = _pchunkLargeOffsetAtom->getChunkOffsetAt(chunk);
 
         /*
          * Find the first sample in chunk
@@ -3270,7 +3349,7 @@ SampleTableAtom::getSampleNumberClosestToTimeStamp(uint32 &sampleNumber,
     if ((_psampleSizeAtom    == NULL) ||
             (_psampleToChunkAtom == NULL) ||
             (_ptimeToSampleAtom  == NULL) ||
-            (_pchunkOffsetAtom   == NULL))
+            ((_pchunkOffsetAtom == NULL) && (_pchunkLargeOffsetAtom == NULL)))
     {
         return (READ_FAILED);
     }

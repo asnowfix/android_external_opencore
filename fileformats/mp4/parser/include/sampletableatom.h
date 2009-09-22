@@ -54,6 +54,10 @@
 #include "chunkoffsetatom.h"
 #endif
 
+#ifndef CHUNKLARGEOFFSETATOM_H_INCLUDED
+#include "chunklargeoffsetatom.h"
+#endif
+
 #ifndef SAMPLETOCHUNKATOM_H_INCLUDED
 #include "sampletochunkatom.h"
 #endif
@@ -481,16 +485,6 @@ class SampleTableAtom : public Atom
             return _numAMRFramesPerSample;
         }
 
-        int32 getNumQCELPFramesPerSample()
-        {
-            return _numQCELPFramesPerSample;
-        }
-
-        int32 getNumEVRCFramesPerSample()
-        {
-            return _numEVRCFramesPerSample;
-        }
-
         MP4_ERROR_CODE getMaxTrackTimeStamp(uint32 fileSize, uint32& timeStamp);
 
         MP4_ERROR_CODE getSampleNumberClosestToTimeStamp(uint32 &sampleNumber,
@@ -583,8 +577,6 @@ class SampleTableAtom : public Atom
         uint32  _IsUpdateFileSize;
 
         int32 _numAMRFramesPerSample;
-        int32 _numQCELPFramesPerSample;
-        int32 _numEVRCFramesPerSample;
 
         uint8 *_pAMRTempBuffer;
         bool  _oResidualSample;
@@ -605,6 +597,22 @@ class SampleTableAtom : public Atom
         OSCL_wStackString<16> _defaultMimeType;
         uint32 _currChunkOffset;
 
+    public:
+        int32 getNumQCELPFramesPerSample()
+        {
+            return _numQCELPFramesPerSample;
+        }
+
+        int32 getNumEVRCFramesPerSample()
+        {
+            return _numEVRCFramesPerSample;
+        }
+
+    private:
+        int32 _numQCELPFramesPerSample;
+        int32 _numEVRCFramesPerSample;
+        ChunkLargeOffsetAtom  *_pchunkLargeOffsetAtom;
+        uint32 chunk_large_offset_exists;
 };
 
 #endif // SAMPLETABLEATOM_H_INCLUDED

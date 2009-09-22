@@ -21,6 +21,7 @@ LOCAL_SRC_FILES := \
  	src/basedescriptor.cpp \
  	src/boxrecord.cpp \
  	src/chunkoffsetatom.cpp \
+	src/chunklargeoffsetatom.cpp \
  	src/compositionoffsetatom.cpp \
  	src/copyrightatom.cpp \
  	src/dataentryatom.cpp \
