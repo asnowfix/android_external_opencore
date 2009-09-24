@@ -415,7 +415,7 @@ PVMFCommandId AndroidSurfaceOutput::DiscardData(PVMFTimestamp aTimestamp, const 
     //needed here.
 
     PVMFStatus status=PVMFSuccess;
-    processWriteResponseQueue(0);
+    processWriteResponseQueue(1);
 
     CommandResponse resp(status,cmdid,aContext);
     QueueCommandResponse(resp);
