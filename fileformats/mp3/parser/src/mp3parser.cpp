@@ -857,7 +857,7 @@ MP3ErrorType MP3Parser::ScanMP3File(PVFile * fpUsed, uint32 aFramesToScan)
 
         MP3Utils::SeektoOffset(fpUsed, mp3ConfigInfo.FrameLengthInBytes - MP3_FRAME_HEADER_SIZE, Oscl_File::SEEKCUR);
         bitrate = mp3ConfigInfo.BitRate;
-        frameDur = frameDur + (uint32)((OsclFloat) mp3ConfigInfo.FrameLengthInBytes * 8000.00f / mp3ConfigInfo.BitRate);
+        frameDur = frameDur + (uint32)((OsclFloat) mp3ConfigInfo.FrameLengthInBytes * 8000.00f * 1000 / mp3ConfigInfo.BitRate);
         iLastScanPosition = fpUsed->Tell();
         numFrames++;
         iScannedFrameCount++;
@@ -887,7 +887,7 @@ MP3ErrorType MP3Parser::ScanMP3File(PVFile * fpUsed, uint32 aFramesToScan)
         // If happens return Duration Present to avoid any further ScanMp3File calls.
         return MP3_DURATION_PRESENT;
     }
-    iScanTimestamp = iScanTimestamp + frameDur;
+    iScanTimestamp = iScanTimestamp + (uint32)(frameDur / 1000);
 
     return MP3_SUCCESS;
 }
