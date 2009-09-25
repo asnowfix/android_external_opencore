@@ -1706,7 +1706,11 @@ bool PVPlayer::isPlaying()
 
 status_t PVPlayer::getCurrentPosition(int *msec)
 {
-    return mPlayerDriver->enqueueCommand(new PlayerGetPosition(msec,0,0));
+    status_t ret = mPlayerDriver->enqueueCommand(new PlayerGetPosition(msec,0,0));
+    if (mDuration > 0 && *msec > mDuration) {
+        *msec = mDuration;
+    }
+    return ret;
 }
 
 status_t PVPlayer::getDuration(int *msec)
