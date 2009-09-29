@@ -143,7 +143,7 @@ RFC3640PayloadParser::Parse(const Payload& inputPacket,
     //Creating a boolean for checking whether RFC3640_ONE_FRAGMENT_PER_MEDIA_MSG is defined or not
     bool rfc3640_one_fragement_per_media     = false;
 
-#ifndef RFC3640_ONE_FRAGMENT_PER_MEDIA_MSG
+#ifdef RFC3640_ONE_FRAGMENT_PER_MEDIA_MSG
     rfc3640_one_fragement_per_media = true;
 #endif
 
@@ -305,7 +305,11 @@ RFC3640PayloadParser::Parse(const Payload& inputPacket,
             for (uint32 i = (out.vfragments.size() - accessUnits); i < out.vfragments.size(); i++)
             {
                 out.vfragments[i].getMemFrag().ptr = fragment.GetBytePos();
-                fragment.NextBits(out.vfragments[i].getMemFrag().len * BITS_PER_BYTE);
+                //TODO: Fix the issue with NextBits() on last fragment
+                if(i != (out.vfragments.size()-1))
+                {
+                    fragment.NextBits(out.vfragments[i].getMemFrag().len * BITS_PER_BYTE);
+                }
             }
         }
 

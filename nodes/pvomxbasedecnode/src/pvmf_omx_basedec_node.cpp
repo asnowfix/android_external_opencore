@@ -4309,9 +4309,10 @@ void PVMFOMXBaseDecNode::DoPrepare(PVMFOMXBaseDecNodeCommand& aCmd)
             }
 
             // ONLY FOR AVC FILE PLAYBACK WILL 1 FRAGMENT CONTAIN ONE FULL NAL
-            if ((format == PVMF_MIME_H264_VIDEO) || (format == PVMF_MIME_H264_VIDEO_MP4))
+            if ((format == PVMF_MIME_H264_VIDEO) || (format == PVMF_MIME_H264_VIDEO_MP4) || (format == PVMF_MIME_3640))
             {
-                // every memory fragment in case of AVC is a full NAL
+                // every memory fragment in case of AVC is a full NAL and
+                // in case of 3640, it is full frame.
                 iSetMarkerBitForEveryFrag = true;
             }
             else
