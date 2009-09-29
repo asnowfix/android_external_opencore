@@ -3030,14 +3030,13 @@ MP3ErrorType MP3Parser::FillTOCTable(uint32 aFilePos, uint32 aTimeStampToFrame)
         return MP3_SUCCESS;
     }
 
-    if ((iTOCFilledCount < MAX_TOC_ENTRY_COUNT) && ((aTimeStampToFrame - iTimestampPrev) >= iBinWidth))
+    // ignore difference of 25ms in timestamp
+    if ((iTOCFilledCount < MAX_TOC_ENTRY_COUNT) && ((aTimeStampToFrame - iTimestampPrev + 25) >= iBinWidth))
     {
-        if (iTimestampPrev != aTimeStampToFrame)
+        // iBinWidth should only be set here once
+        if (iBinWidth == 0 && (iTimestampPrev < aTimeStampToFrame))
         {
-            if ((aTimeStampToFrame - iTimestampPrev) > iBinWidth)
-            {
-                iBinWidth = aTimeStampToFrame - iTimestampPrev;
-            }
+            iBinWidth = aTimeStampToFrame - iTimestampPrev;
         }
         // push the file offset into TOC table
         iTOC[iTOCFilledCount] = aFilePos - StartOffset;
