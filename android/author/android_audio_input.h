@@ -467,6 +467,12 @@ private:
     // This stores the Start cmd when Audio MIO is waiting for
     // first audio frame to be received from the device.
     AndroidAudioInputCmd iStartCmd;
+    // Variable to track AudioSource type.
+    int iAudioFormatType;
+    bool iBufferForceWrite;
+
+    // Audio input thread
+    OsclThread AudioInput_Thread;
 };
 
 }; // namespace android

@@ -879,10 +879,10 @@ PVMFStatus AndroidAudioInput::DoStart()
     iAudioThreadStartLock->lock();
     iAudioThreadStarted = false;
 
-    OsclThread AudioInput_Thread;
+    /* Make the thread joinable */
     OsclProcStatus::eOsclProcError ret = AudioInput_Thread.Create(
             (TOsclThreadFuncPtr)start_audin_thread_func, 0,
-            (TOsclThreadFuncArg)this, Start_on_creation);
+            (TOsclThreadFuncArg)this, Start_on_creation, true);
 
     if ( OsclProcStatus::SUCCESS_ERROR != ret)
     { // thread creation failed
@@ -947,9 +947,16 @@ PVMFStatus AndroidAudioInput::DoReset()
     iFirstFrameReceived = false;
     iFirstFrameTs = 0;
     if(iAudioThreadStarted ){
-    iAudioThreadSem->Signal();
-    iAudioThreadTermSem->Wait();
-    iAudioThreadStarted = false;
+        iAudioThreadSem->Signal();
+        iAudioThreadTermSem->Wait();
+        int exitCode = 0;
+        OsclProcStatus::eOsclProcError ret = AudioInput_Thread.Terminate((OsclAny*)exitCode);
+        /* No need to check for exitCode, as it is an unused argument in Terminate() */
+        if ( OsclProcStatus::SUCCESS_ERROR != ret )
+        {
+            LOGE("Failed to terminate the thread : audio in");
+        }
+        iAudioThreadStarted = false;
     }
     while(!iCmdQueue.empty())
     {
@@ -1000,6 +1007,14 @@ PVMFStatus AndroidAudioInput::DoStop()
     if(iAudioThreadStarted ){
     iAudioThreadSem->Signal();
     iAudioThreadTermSem->Wait();
+    int exitCode = 0;
+    OsclProcStatus::eOsclProcError ret = AudioInput_Thread.Terminate((OsclAny*)exitCode);
+    /* No need to check for exitCode, as it is an unused argument in Terminate() */
+    if ( OsclProcStatus::SUCCESS_ERROR != ret)
+    {
+        LOGE("Failed to terminate the thread : audio in");
+    }
+
     iAudioThreadStarted = false;
     }
     return PVMFSuccess;
