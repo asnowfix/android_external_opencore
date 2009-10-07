@@ -4989,7 +4989,6 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
 
             if (!autopaused)
             {
-                uint32 requestedTimestamp = aTrackPortInfo.iTimestamp;
                 // If Parser library reported Insufficient data after seek, the requested
                 // timestamp here should be TS of sample from new position, so peek the
                 // sample.
@@ -5003,9 +5002,13 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
                             && (numSamples > 0))
                     {
                         aTrackPortInfo.iClockConverter->set_clock(info.ts, 0);
-                        requestedTimestamp = aTrackPortInfo.iClockConverter->get_converted_ts(1000);
                     }
                 }
+                else
+                {
+                    aTrackPortInfo.iClockConverter->set_clock(aTrackPortInfo.iTimestamp, 0);
+                }
+                uint32 requestedTimestamp = aTrackPortInfo.iClockConverter->get_converted_ts(1000);
 
                 if ((NULL != iDataStreamInterface) && (0 != iDataStreamInterface->QueryBufferingCapacity()))
                 {
