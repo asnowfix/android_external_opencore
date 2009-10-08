@@ -4500,10 +4500,9 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
             numsamples = 0;
             PVMFStatus status = PVMFFailure;
             uint32 keySampleNum = PVMFFF_DEFAULT_THUMB_NAIL_SAMPLE_NUMBER;
-            if (!iMP4FileHandle->IsMovieFragmentsPresent())
-            {
-                status = FindBestThumbnailKeyFrame(trackid, keySampleNum);
-            }
+
+            status = FindBestThumbnailKeyFrame(trackid, keySampleNum);
+
             if (PVMFSuccess != status)
             {
                 // no keyframe exists in the file, hence thumbnail could not
