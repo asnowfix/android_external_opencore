@@ -494,12 +494,12 @@ Int get_prog_config(
             LEN_SAMP_IDX,
             pInputStream);
 
-    if (!pVars->adif_test && pScratchPCE->sampling_rate_idx != pVars->prog_config.sampling_rate_idx)
-    {
-        /* rewind the pointer as implicit channel configuration maybe the case */
-        pInputStream->usedBits -= (LEN_TAG + LEN_PROFILE + LEN_SAMP_IDX);
 
-        return (1); /*  mismatch cannot happen */
+    /* If the sampling rate index in the PCE does not match with sampling rate index coded
+     * in the ESDS header, no need to return error. Proceed with sampling rate index decoded
+     * in the ESDS header */
+    if ( pScratchPCE->sampling_rate_idx != pVars->prog_config.sampling_rate_idx ) {
+        pScratchPCE->sampling_rate_idx = pVars->prog_config.sampling_rate_idx;
     }
 
 
