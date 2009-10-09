@@ -702,7 +702,7 @@ MP3ErrorType MP3Parser::ScanMP3File(PVFile * fpUsed, uint32 aFramesToScan)
     MP3ConfigInfoType mp3ConfigInfo;
 
     if (iClipDurationFromMetadata || (iClipDurationFromVBRIHeader &&
-                                      ((iVbriHeader.entriesTOC >= 0) ||
+                                      ((iVbriHeader.entriesTOC > 0) ||
                                        (iXingHeader.flags & TOC_FLAG)))
        )
     {
