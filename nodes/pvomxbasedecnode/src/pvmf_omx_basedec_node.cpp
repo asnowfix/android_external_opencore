@@ -2933,6 +2933,7 @@ OSCL_EXPORT_REF bool PVMFOMXBaseDecNode::SendConfigBufferToOMXComponent(uint8 *i
 
     if ( OMX_ErrorNone != OMX_EmptyThisBuffer(iOMXDecoder, input_buf->pBufHdr) )
     {
+        EmptyBufferDoneProcessing(iOMXDecoder, NULL, input_buf->pBufHdr);
         return false;
     }
     return true;
