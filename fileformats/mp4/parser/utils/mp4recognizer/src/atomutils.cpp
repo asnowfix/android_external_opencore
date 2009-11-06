@@ -568,6 +568,7 @@ AtomUtils::getNextAtomType(MP4_FF_FILE *fp, uint32 &size, uint32 &type)
             type == SAMPLE_SIZE_ATOM ||
             type == SAMPLE_TO_CHUNK_ATOM ||
             type == CHUNK_OFFSET_ATOM ||
+            type == CHUNK_LARGE_OFFSET_ATOM ||
             type == SYNC_SAMPLE_ATOM ||
             type == SHADOW_SYNC_SAMPLE_ATOM ||
             type == DEGRADATION_PRIORITY_ATOM ||
@@ -934,6 +935,7 @@ AtomUtils::getNextAtomType(uint8 *buf)
             type == SAMPLE_SIZE_ATOM ||
             type == SAMPLE_TO_CHUNK_ATOM ||
             type == CHUNK_OFFSET_ATOM ||
+            type == CHUNK_LARGE_OFFSET_ATOM ||
             type == SYNC_SAMPLE_ATOM ||
             type == SHADOW_SYNC_SAMPLE_ATOM ||
             type == DEGRADATION_PRIORITY_ATOM ||
