@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1115,6 +1116,13 @@ PVMFStatus PVAuthorEngine::DoSelectComposer(PVEngineCommand& aCmd)
     return PVMFPending;
 }
 
+// Voicemoe - Function to compare mime types
+static bool CompareMimeTypes(const PvmfMimeString& a, const PvmfMimeString& b)
+{
+    return (oscl_strncmp(a.get_cstr(), b.get_cstr(), oscl_strlen(a.get_cstr())) == 0);
+}
+
+
 ////////////////////////////////////////////////////////////////////////////
 PVMFStatus PVAuthorEngine::DoAddMediaTrack(PVEngineCommand& aCmd)
 {
@@ -1168,6 +1176,20 @@ PVMFStatus PVAuthorEngine::DoAddMediaTrack(PVEngineCommand& aCmd)
                          LOG_ERR((0, "PVAuthorEngine::DoAddMediaTrack: Error - iDataSourceNodes.push_back failed"));
                          return PVMFFailure;
                         );
+    // 1. If Compressed input and following types - configure tunnel encode
+    if ( compressedDataSrc &&
+        ((aCmd.GetMimeType() == KAmrNbEncMimeType) ||
+         (aCmd.GetMimeType() == kEVRCEncMimeType) ||
+         (aCmd.GetMimeType() == kQCELPEncMimeType)))
+    {
+
+      //  2.1 Setting up the MIO node to ensure that the right format is sent
+      LOG_DEBUG((0, "PVAuthorEngine::DoAddMediaTrack: Setting up Compressed Encode graph"));
+    }
+    else
+    {
+      compressedDataSrc = false;
+    }
 
     if (compressedDataSrc)
     {
@@ -1718,6 +1740,15 @@ PVMFStatus PVAuthorEngine::GetPvmfFormatString(PvmfMimeString& aMimeType, const 
     else if (aNodeMimeType == KAMRWbEncMimeType)
     {
         aMimeType = PVMF_MIME_AMRWB_IETF;
+    }
+    // Added support for EVRC and QCELP mime types
+    else if (aNodeMimeType == kEVRCEncMimeType)
+    {
+      aMimeType = PVMF_MIME_EVRC;
+    }
+    else if (aNodeMimeType == kQCELPEncMimeType)
+    {
+      aMimeType = PVMF_MIME_QCELP;
     }
     else if (aNodeMimeType == KAACADIFEncMimeType ||
              aNodeMimeType == KAACADIFComposerMimeType)

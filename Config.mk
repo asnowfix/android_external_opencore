@@ -32,7 +32,7 @@ include $(CLEAR_VARS)
 # Use PV_CFLAGS_MINUS_VISIBILITY instead of PV_CFLAGS until we figure out the reason.
 # JJ 06/05/09
     PV_CFLAGS_MINUS_VISIBILITY := $(PV_CFLAGS)
-    PV_CFLAGS += -fvisibility=hidden
+#    PV_CFLAGS += -fvisibility=hidden
 
   PV_INCLUDES := \
 	$(PV_TOP)/android \

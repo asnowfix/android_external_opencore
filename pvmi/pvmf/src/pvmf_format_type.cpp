@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,7 +71,9 @@ OSCL_EXPORT_REF bool PVMFFormatType::isAudio() const
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_3640) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_G726) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_ASF_AMR) == 0) ||
-            (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_ASF_MPEG4_AUDIO) == 0))
+            (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_ASF_MPEG4_AUDIO) == 0) ||
+            (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_QCELP) == 0) ||
+            (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_EVRC) == 0))
     {
         return true;
     }

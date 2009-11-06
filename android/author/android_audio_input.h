@@ -473,6 +473,10 @@ private:
 
     // Audio input thread
     OsclThread AudioInput_Thread;
+
+public:
+    bool setAudioFormatType(char *iAudioFormat);
+
 };
 
 }; // namespace android

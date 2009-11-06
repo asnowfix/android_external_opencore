@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2008, The Android Open Source Project
  * Copyright (C) 2008 HTC Inc.
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -388,6 +389,11 @@ void AuthorDriver::handleSetOutputFormat(set_output_format_command *ac)
         mComposerMimeType = "/x-pvmf/ff-mux/adts";
         break;
 
+    // Adding QCP file support
+    case OUTPUT_FOMRAT_QCP:
+        mComposerMimeType = "/x-pvmf/ff-mux/qcp";
+        break;
+
     // Adding 3GPP2 file support
     case OUTPUT_FORMAT_THREE_GPP2:
         mComposerMimeType = "/x-pvmf/ff-mux/3g2";
@@ -418,13 +424,18 @@ void AuthorDriver::handleSetAudioEncoder(set_audio_encoder_command *ac)
 
     int error = 0;
     OSCL_HeapString<OsclMemAllocator> iAudioEncoderMimeType;
+    char  *iAudioFormat = NULL;
 
     if (ac->ae == AUDIO_ENCODER_DEFAULT)
         ac->ae = AUDIO_ENCODER_AMR_NB;
 
+        iAudioFormat = PVMF_MIME_PCM16;
+
     switch(ac->ae) {
     case AUDIO_ENCODER_AMR_NB:
         iAudioEncoderMimeType = "/x-pvmf/audio/encode/amr-nb";
+        iAudioFormat = PVMF_MIME_AMR_IETF;
+
         // AMR_NB only supports 8kHz sampling rate
         if (mSamplingRate == 0)
         {
@@ -515,6 +526,67 @@ void AuthorDriver::handleSetAudioEncoder(set_audio_encoder_command *ac)
         }
         break;
 
+    // Adding support for EVRC and QCELP codec type
+    case AUDIO_ENCODER_EVRC:
+        iAudioEncoderMimeType = "/x-pvmf/audio/encode/evrc";
+        iAudioFormat = PVMF_MIME_EVRC;
+
+        if (mSamplingRate == 0)
+        {
+            // Sampling rate not set, use the default
+            mSamplingRate = 8000;
+        }
+        else if (mSamplingRate != 8000)
+        {
+            LOGE("Only valid sampling rate for AMR_NB is 8kHz.");
+            commandFailed(ac);
+            return;
+        }
+
+        // AMR_NB only supports mono (IE 1 channel)
+        if (mNumberOfChannels == 0)
+        {
+            // Number of channels not set, use the default
+            mNumberOfChannels = 1;
+        }
+        else if (mNumberOfChannels != 1)
+        {
+            LOGE("Only valid number of channels for ANR_NB is 1.");
+            commandFailed(ac);
+            return;
+        }
+        break;
+
+    case AUDIO_ENCODER_QCELP:
+        iAudioEncoderMimeType = "/x-pvmf/audio/encode/qcelp";
+        iAudioFormat = PVMF_MIME_QCELP;
+
+        if (mSamplingRate == 0)
+        {
+            // Sampling rate not set, use the default
+            mSamplingRate = 8000;
+        }
+        else if (mSamplingRate != 8000)
+        {
+            LOGE("Only valid sampling rate for AMR_NB is 8kHz.");
+            commandFailed(ac);
+            return;
+        }
+
+        // AMR_NB only supports mono (IE 1 channel)
+        if (mNumberOfChannels == 0)
+        {
+            // Number of channels not set, use the default
+            mNumberOfChannels = 1;
+        }
+        else if (mNumberOfChannels != 1)
+        {
+            LOGE("Only valid number of channels for ANR_NB is 1.");
+            commandFailed(ac);
+            return;
+        }
+        break;
+
     case AUDIO_ENCODER_AAC_PLUS:
     case AUDIO_ENCODER_EAAC_PLUS:
         // Added for future use.  Not currently supported by pvauthor
@@ -539,6 +611,11 @@ void AuthorDriver::handleSetAudioEncoder(set_audio_encoder_command *ac)
         LOGE("Failed to set the number of channels %d", mNumberOfChannels);
         commandFailed(ac);
         return;
+    }
+
+    if (!mAudioInputMIO->setAudioFormatType(iAudioFormat))
+    {
+        LOGE("Compressed Audio Input not supported %s", iAudioFormat);
     }
 
     mAudioEncoder = ac->ae;
@@ -658,7 +735,8 @@ void AuthorDriver::handleSetOutputFile(set_output_file_command *ac)
     }
 
     if (( OUTPUT_FORMAT_AMR_NB == mOutputFormat ) || ( OUTPUT_FORMAT_AMR_WB == mOutputFormat ) ||
-        ( OUTPUT_FORMAT_AAC_ADIF == mOutputFormat ) || ( OUTPUT_FORMAT_AAC_ADTS == mOutputFormat )) {
+        ( OUTPUT_FORMAT_AAC_ADIF == mOutputFormat ) || ( OUTPUT_FORMAT_AAC_ADTS == mOutputFormat ) ||
+        ( OUTPUT_FOMRAT_QCP == mOutputFormat )) {
         PvmfFileOutputNodeConfigInterface *config = OSCL_DYNAMIC_CAST(PvmfFileOutputNodeConfigInterface*, mComposerConfig);
         if (!config) goto exit;
 

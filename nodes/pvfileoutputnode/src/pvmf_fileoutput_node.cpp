@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -234,6 +235,8 @@ PVMFStatus PVMFFileOutputNode::GetCapability(PVMFNodeCapability& aNodeCapability
         iCapability.iInputFormatCapability.push_back(PVMF_MIME_H264_VIDEO);
         iCapability.iInputFormatCapability.push_back(PVMF_MIME_PCM);
         iCapability.iInputFormatCapability.push_back(PVMF_MIME_3GPP_TIMEDTEXT);
+        iCapability.iInputFormatCapability.push_back(PVMF_MIME_QCELP);
+        iCapability.iInputFormatCapability.push_back(PVMF_MIME_EVRC);
     }
     aNodeCapability = iCapability;
     return PVMFSuccess;
@@ -957,6 +960,15 @@ PVMFStatus PVMFFileOutputNode::WriteFormatSpecificInfo(OsclAny* aPtr, uint32 aSi
             }
             iFirstMediaData = false;
         }
+        else if ( (((PVMFFileOutputInPort*)iInPort)->iFormat == PVMF_MIME_QCELP) ||
+                  (((PVMFFileOutputInPort*)iInPort)->iFormat == PVMF_MIME_EVRC))
+        {
+              oscl_memset((OsclAny*)&append_header, 0, QCP_HEADER_SIZE);
+              oscl_memcpy((OsclAny*)&append_header,&default_header,QCP_HEADER_SIZE);
+
+              iOutputFile.Seek(QCP_HEADER_SIZE, Oscl_File::SEEKSET);
+              iFirstMediaData = false;
+        }
         else if (((PVMFFileOutputInPort*)iInPort)->iFormat == PVMF_MIME_3GPP_TIMEDTEXT)
         {
             if (aSize > 0)
@@ -1167,6 +1179,64 @@ PVMFCommandId PVMFFileOutputNode::QueueCommandL(PVMFFileOutputNodeCommand& aCmd)
     return id;
 }
 
+/** Function to create the QCP header */
+void PVMFFileOutputNode::CreateQCPHeader()
+{
+   append_header.s_riff = iFileSize + QCP_HEADER_SIZE - 8; /* exclude riff id and size field */
+
+if(((PVMFFileOutputInPort*)iInPort)->iFormat  == PVMF_MIME_QCELP) { /* QCELP 13K */
+  append_header.data1 = 0x5E7F6D41;
+  append_header.data2 = 0xB115;
+  append_header.data3 = 0x11D0;
+  append_header.data4[0] = 0xBA;
+  append_header.data4[1] = 0x91;
+  append_header.data4[2] = 0x00;
+  append_header.data4[3] = 0x80;
+  append_header.data4[4] = 0x5F;
+  append_header.data4[5] = 0xB4;
+  append_header.data4[6] = 0xB9;
+  append_header.data4[7] = 0x7E;
+  append_header.ver = 0x0002;
+  oscl_memcpy(append_header.name, "Qcelp 13K", 9);
+  append_header.abps = 13000;
+  append_header.bytes_per_pkt = 35;
+  append_header.vr_num_of_rates = 5;
+  append_header.vr_bytes_per_pkt[0] = 0x0422;
+  append_header.vr_bytes_per_pkt[1] = 0x0310;
+  append_header.vr_bytes_per_pkt[2] = 0x0207;
+  append_header.vr_bytes_per_pkt[3] = 0x0103;
+  append_header.s_vrat = 0x00000008;
+  append_header.v_rate = 0x00000001;
+  append_header.size_in_pkts = (iFileSize / append_header.bytes_per_pkt);
+}
+else if ( ((PVMFFileOutputInPort*)iInPort)->iFormat  == PVMF_MIME_EVRC) { /* EVRC */
+  append_header.data1 = 0xe689d48d;
+  append_header.data2 = 0x9076;
+  append_header.data3 = 0x46b5;
+  append_header.data4[0] = 0x91;
+  append_header.data4[1] = 0xef;
+  append_header.data4[2] = 0x73;
+  append_header.data4[3] = 0x6a;
+  append_header.data4[4] = 0x51;
+  append_header.data4[5] = 0x00;
+  append_header.data4[6] = 0xce;
+  append_header.data4[7] = 0xb4;
+  append_header.ver = 0x0001;
+  oscl_memcpy(append_header.name, "TIA IS-127 Enhanced Variable Rate Codec, Speech Service Option 3", 64);
+  append_header.abps = 9600; /* Check */
+  append_header.bytes_per_pkt = 23;
+  append_header.vr_num_of_rates = 4;
+  append_header.vr_bytes_per_pkt[0] = 0x0416;
+  append_header.vr_bytes_per_pkt[1] = 0x030a;
+  append_header.vr_bytes_per_pkt[2] = 0x0200;
+  append_header.vr_bytes_per_pkt[3] = 0x0102;
+  append_header.s_vrat = 0x00000008;
+  append_header.v_rate = 0x00000001;
+  append_header.size_in_pkts = (iFileSize / append_header.bytes_per_pkt);
+}
+
+append_header.s_data = iFileSize;
+}
 
 /////////////////////////////////////////////////////
 bool PVMFFileOutputNode::ProcessPortActivity()
@@ -1242,6 +1312,34 @@ PVMFStatus PVMFFileOutputNode::ProcessIncomingMsg(PVMFPortInterface* aPort)
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
                         (0, "PVFileOutputNode::ProcessIncomingMsg BOS Received"));
         return PVMFSuccess;
+    }
+
+    if (msg->getFormatID() == PVMF_MEDIA_CMD_EOS_FORMAT_ID)
+    {
+      if (iFileOpened)
+      {
+        // Update the File header, if the format is either QCELP or EVRC
+        if ( (((PVMFFileOutputInPort*)iInPort)->iFormat == PVMF_MIME_QCELP) ||
+             (((PVMFFileOutputInPort*)iInPort)->iFormat == PVMF_MIME_EVRC))
+        {
+            PVMFStatus status = PVMFSuccess;
+
+            // Create the QCP header with the right file size and framecount
+            CreateQCPHeader();
+
+            // Move the file pointer to the begining of the file to write the header
+            iOutputFile.Seek(0, Oscl_File::SEEKSET);
+            // Write the header information to the file
+            status = WriteData((OsclAny*)&append_header, QCP_HEADER_SIZE);
+            if (status != PVMFSuccess)
+            {
+              PVLOGGER_LOGMSG(PVLOGMSG_INST_REL, iLogger, PVLOGMSG_ERR,
+                                  (0, "PVMFFileOutputNode::WriteFormatSpecificInfo: Error - WriteData failed"));
+            }
+        }
+
+        CloseOutputFile();
+      }
     }
 
     // Transfer to the port's sync queue to do synchronization

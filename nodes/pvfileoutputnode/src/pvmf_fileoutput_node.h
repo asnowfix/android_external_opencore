@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,6 +86,64 @@
 // Macros for AMR-WB header
 #define AMRWB_HEADER        "#!AMR-WB\n"
 #define AMRWB_HEADER_SIZE   9
+
+// Macros for QCP header
+struct qcp_header
+{
+  /* RIFF Section */
+  char riff[4];
+  unsigned int s_riff;
+  char qlcm[4];
+
+  /* Format chunk */
+  char fmt[4];
+  unsigned int s_fmt;
+  char mjr;
+  char mnr;
+  unsigned int data1;
+
+  /* UNIQUE ID of the codec */
+  unsigned short data2;
+  unsigned short data3;
+  char data4[8];
+  unsigned short ver;
+
+  /* Codec Info */
+  char name[80];
+  unsigned short abps;
+
+  /* average bits per sec of the codec */
+  unsigned short bytes_per_pkt;
+  unsigned short samp_per_block;
+  unsigned short samp_per_sec;
+  unsigned short bits_per_samp;
+  unsigned char vr_num_of_rates;
+
+  /* Rate Header fmt info */
+  unsigned char rvd1[3];
+  unsigned short vr_bytes_per_pkt[8];
+  unsigned int rvd2[5];
+
+  /* Vrat chunk */
+  unsigned char vrat[4];
+  unsigned int s_vrat;
+  unsigned int v_rate;
+  unsigned int size_in_pkts;
+
+  /* Data chunk */
+  unsigned char data[4];
+  unsigned int s_data;
+} __attribute__ ((packed));
+
+/* Common part */
+static struct qcp_header default_header = {
+ {'R', 'I', 'F', 'F'}, 0, {'Q', 'L', 'C', 'M'}, /* Riff */
+ {'f', 'm', 't', ' '}, 150, 1, 0, 0, 0, 0,{0}, 0, {0},0,0,160,8000,16,0,{0},{0},{0}, /* Fmt */
+ {'v','r','a','t'}, 0, 0, 0, /* Vrat */
+ {'d','a','t','a'},0 /* Data */
+};
+
+#define QCP_HEADER_SIZE sizeof(struct qcp_header)
 
 ////////////////////////////////////////////////////////////////////////////
 class PVMFFileOutputAlloc : public Oscl_DefAlloc
@@ -425,6 +484,12 @@ class PVMFFileOutputNode :  public OsclActiveObject, public PVMFNodeInterface,
         PVMFMediaClock* iClock;
         int32 iEarlyMargin;
         int32 iLateMargin;
+
+        /** Create the QCP header with the required information, to create a QCP file */
+        void CreateQCPHeader();
+
+        // QCP header structure
+        struct qcp_header append_header;
 };
 
 #endif // PVMF_FILEOUTPUT_NODE_H_INCLUDED
