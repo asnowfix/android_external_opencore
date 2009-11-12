@@ -324,15 +324,13 @@ int32 AACBitstreamObject::isAACFile()
 
                 // default to not enough data
                 retVal = AACBitstreamObject::INSUFFICIENT_DATA;
-                if (aRemBytes >= MAX_ADTS_PACKET_LENGTH)
+
+                // check for possible ADTS sync word
+                int32 index = find_adts_syncword(pBuffer);
+                if (index != -1)
                 {
-                    // check for possible ADTS sync word
-                    int32 index = find_adts_syncword(pBuffer);
-                    if (index != -1)
-                    {
-                        // definitely ADTS
-                        retVal = AACBitstreamObject::EVERYTHING_OK;
-                    }
+                    // definitely ADTS
+                    retVal = AACBitstreamObject::EVERYTHING_OK;
                 }
 
                 if (AACBitstreamObject::INSUFFICIENT_DATA == retVal)
@@ -385,7 +383,7 @@ int32 AACBitstreamObject::find_adts_syncword(uint8 *pBuffer)
     uint32 buff_length;
 
 
-    buff_length = OSCL_MIN(MAX_ADTS_PACKET_LENGTH, iActual_size);
+    buff_length = iActual_size;
 
 
     for (i = 0; i < buff_length - 1; i++)
