@@ -348,7 +348,7 @@ int32 OsclFileCache::Seek(TOsclFileOffset offset, Oscl_File::seek_type origin)
     }
 
     //don't allow seeking outside valid file size
-    if (pos < 0 || pos > FileSize())
+    if ((uint32)pos < 0 || (uint32)pos > (uint32)FileSize())
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG,
                         (0, "OsclFileCache(0x%x)::Seek ERROR invalid seek position %d", this, pos));
@@ -357,7 +357,7 @@ int32 OsclFileCache::Seek(TOsclFileOffset offset, Oscl_File::seek_type origin)
 
     //when seek is in current cache range, just update the
     //virtual position.
-    if (_cacheFilePosition <= pos && pos <= (TOsclFileOffset)(_cacheFilePosition + _endCachePos))
+    if ((uint32)_cacheFilePosition <= (uint32)pos && (uint32)pos <= (uint32)(_cacheFilePosition + _endCachePos))
     {
         _currentCachePos = (uint32)(pos - _cacheFilePosition);
         return 0;//success
