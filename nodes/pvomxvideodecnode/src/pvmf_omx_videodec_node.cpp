@@ -1598,7 +1598,7 @@ bool PVMFOMXVideoDecNode::QueueOutputBuffer(OsclSharedPtr<PVMFMediaDataImpl> &me
 
 
         // in case of special YVU format, attach fsi to every outgoing message containing ptr to private data
-        if (iYUVFormat == PVMF_MIME_YUV420_SEMIPLANAR_YVU)
+        if ((iYUVFormat == PVMF_MIME_YUV420_SEMIPLANAR_YVU) || (iYUVFormat == PVMF_MIME_YUV420_SEMIPLANAR))
         {
             OsclRefCounterMemFrag privatedataFsiMemFrag;
 
