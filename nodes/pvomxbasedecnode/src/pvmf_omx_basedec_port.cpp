@@ -250,18 +250,27 @@ OSCL_EXPORT_REF void PVMFOMXDecPort::setParametersSync(PvmiMIOSession aSession,
 {
 
     // if port connect needs format specific info
-    if (aParameters && pv_mime_strcmp(aParameters->key, PVMF_FORMAT_SPECIFIC_INFO_KEY) == 0)
+    if (aParameters)
     {
-        if (iTrackConfig != NULL)
+        if (pv_mime_strcmp(aParameters->key, PVMF_FORMAT_SPECIFIC_INFO_KEY) == 0)
         {
-            OSCL_FREE(iTrackConfig);
-            iTrackConfigSize = 0;
+            if (iTrackConfig != NULL)
+            {
+                OSCL_FREE(iTrackConfig);
+                iTrackConfigSize = 0;
+            }
+            iTrackConfigSize = aParameters->capacity;
+            iTrackConfig = (uint8*)(OSCL_MALLOC(sizeof(uint8) * iTrackConfigSize));
+            oscl_memcpy(iTrackConfig, aParameters->value.key_specific_value, iTrackConfigSize);
+            return;
         }
-        iTrackConfigSize = aParameters->capacity;
-        iTrackConfig = (uint8*)(OSCL_MALLOC(sizeof(uint8) * iTrackConfigSize));
-        oscl_memcpy(iTrackConfig, aParameters->value.key_specific_value, iTrackConfigSize);
-        return;
+        else if (iFormat == PVMF_MIME_H2631998 || iFormat == PVMF_MIME_H2632000)
+        {
+            iOMXNode->setParametersSync(aSession, aParameters, num_elements, aRet_kvp);
+            return;
+        }
     }
+
     // call the base class function
     PvmiCapabilityAndConfigPortFormatImpl::setParametersSync(aSession, aParameters, num_elements, aRet_kvp);
 

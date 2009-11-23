@@ -69,11 +69,14 @@ const PVOMXBaseDecNodeKeyStringData PVOMXVideoDecNodeConfigM4VKeys[PVOMXVIDEODEC
 };
 
 // Key string info at the render level ("x-pvmf/video/render")
-#define PVOMXVIDEODECNODECONFIG_RENDER_NUMKEYS 2
+#define PVOMXVIDEODECNODECONFIG_RENDER_NUMKEYS 4
 const PVOMXBaseDecNodeKeyStringData PVOMXVideoDecNodeConfigRenderKeys[PVOMXVIDEODECNODECONFIG_RENDER_NUMKEYS] =
 {
     {"width", PVMI_KVPTYPE_VALUE, PVMI_KVPVALTYPE_UINT32},
-    {"height", PVMI_KVPTYPE_VALUE, PVMI_KVPVALTYPE_UINT32}
+    {"height", PVMI_KVPTYPE_VALUE, PVMI_KVPVALTYPE_UINT32},
+    {"display_width", PVMI_KVPTYPE_VALUE, PVMI_KVPVALTYPE_UINT32},
+    {"display_height", PVMI_KVPTYPE_VALUE, PVMI_KVPVALTYPE_UINT32},
+
 };
 
 
@@ -204,6 +207,8 @@ class PVMFOMXVideoDecNode
 
         uint32 iNewWidth , iNewHeight;
 
+        PVMFStatus DoVerifyAndSetVidRenderParameter(PvmiKvp& aParameter, bool aSetParam);
+        bool iUpstreamParsing;
 };
 
 
