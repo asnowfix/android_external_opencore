@@ -4588,6 +4588,7 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
 
     uint32 actualdatasize = 0;
     uint32 tsDelta = 0;
+    uint32 cttsOffset = 0;
     uint32 duration_text_msec = 0;
     bool oSetNoRenderBit = false;
     bool textOnlyClip = false;
@@ -4618,6 +4619,9 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
         else
         {
             tsDelta += iGau.info[i].ts_delta;
+            //@FIXME" cttsOffset is being saved does not work if we read more than one video frame
+            //at a time
+            cttsOffset += iGau.info[i].ctts_offset;
 
             if (iGau.info[i].ts < aTrackPortInfo.iTargetNPTInMediaTimeScale)
             {
@@ -4924,7 +4928,7 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
         media_data_impl->setMarkerInfo(markerInfo);
 
         // Retrieve timestamp and convert to milliseconds
-        aTrackPortInfo.iClockConverter->set_clock(aTrackPortInfo.iTimestamp, 0);
+        aTrackPortInfo.iClockConverter->set_clock((aTrackPortInfo.iTimestamp + cttsOffset), 0);
         uint32 timestamp = aTrackPortInfo.iClockConverter->get_converted_ts(1000);
 
         // Set the media data's timestamp

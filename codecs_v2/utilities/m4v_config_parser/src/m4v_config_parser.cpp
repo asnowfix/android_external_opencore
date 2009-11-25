@@ -1121,13 +1121,13 @@ int32 DecodePPS(mp4StreamType *psBits)
 
     ue_v(psBits, &pic_parameter_set_id);
     ue_v(psBits, &seq_parameter_set_id);
-
+/*
     ReadBits(psBits, 1, &entropy_coding_mode_flag);
     if (entropy_coding_mode_flag)
     {
         return 1;
     }
-
+*/
     return 0;
 }
 
