@@ -477,6 +477,8 @@ private:
 public:
     bool setAudioFormatType(char *iAudioFormat);
 
+private:
+    uint8 configData[2];
 };
 
 }; // namespace android

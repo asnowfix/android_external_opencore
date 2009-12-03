@@ -1177,10 +1177,11 @@ PVMFStatus PVAuthorEngine::DoAddMediaTrack(PVEngineCommand& aCmd)
                          return PVMFFailure;
                         );
     // 1. If Compressed input and following types - configure tunnel encode
-    if ( compressedDataSrc &&
-        ((aCmd.GetMimeType() == KAmrNbEncMimeType) ||
-         (aCmd.GetMimeType() == kEVRCEncMimeType) ||
-         (aCmd.GetMimeType() == kQCELPEncMimeType)))
+     if ( compressedDataSrc &&
+         ((aCmd.GetMimeType() == KAmrNbEncMimeType) ||
+          (aCmd.GetMimeType() == kEVRCEncMimeType) ||
+          (aCmd.GetMimeType() == kQCELPEncMimeType) ||
+          (aCmd.GetMimeType() == KAACMP4EncMimeType)))
     {
 
       //  2.1 Setting up the MIO node to ensure that the right format is sent

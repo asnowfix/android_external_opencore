@@ -522,7 +522,7 @@ PVMFStatus AndroidAudioInput::getParametersSync(PvmiMIOSession session,
     {
 #ifndef SURF8K
         // No. of Supported audio format types
-        num_parameter_elements = 4;
+        num_parameter_elements = 5;
 #else
         num_parameter_elements = 1;
 #endif
@@ -540,6 +540,7 @@ PVMFStatus AndroidAudioInput::getParametersSync(PvmiMIOSession session,
             parameters[1].value.pChar_value = (char*)PVMF_MIME_AMR_IETF;
             parameters[2].value.pChar_value = (char*)PVMF_MIME_QCELP;
             parameters[3].value.pChar_value = (char*)PVMF_MIME_EVRC;
+            parameters[4].value.pChar_value = (char*)PVMF_MIME_MPEG4_AUDIO;
 #endif
         }
     }
@@ -1065,7 +1066,6 @@ PVMFStatus AndroidAudioInput::DoStop()
     RemoveDestroyClockStateObs();
 
     iExitAudioThread = true;
-    iDataEventCounter = 0;
     iFirstFrameReceived = false;
     iFirstFrameTs = 0;
     iState = STATE_STOPPED;
@@ -1109,7 +1109,6 @@ PVMFStatus AndroidAudioInput::DoRead()
     uint32 timeStamp = 0;
     uint32 writeAsyncID = 0;
 
-    ++iDataEventCounter;
 
     iOSSRequestQueueLock.Lock();
     //allocate mem for the audio capture thread
@@ -1222,13 +1221,31 @@ int AndroidAudioInput::audin_thread_func() {
       nFrameSize = 35; // Full rate frame size
       kBufferSize = 1050;
     }
+    else if (iAudioFormatType == android::AudioSystem::AAC)
+    {
+      nFrameSize = 2048; // Full rate frame size
+      kBufferSize = 2048;
+    }
 
-    AudioRecord* record = new AudioRecord(
-                    iAudioSource, iAudioSamplingRate,
-                    iAudioFormatType,
-                    (iAudioNumChannels > 1) ? AudioSystem::CHANNEL_IN_STEREO : AudioSystem::CHANNEL_IN_MONO,
-                    4*kBufferSize/iAudioNumChannels/nFrameSize, flags);
-    LOGV("AudioRecord created %p, this %p", record, this);
+    AudioRecord* record;
+    if (iAudioFormatType == android::AudioSystem::AAC)
+    {
+        record = new AudioRecord(
+                     iAudioSource, iAudioSamplingRate,
+                     iAudioFormatType,
+                     (iAudioNumChannels > 1) ? AudioSystem::CHANNEL_IN_STEREO : AudioSystem::CHANNEL_IN_MONO,
+                     4*kBufferSize/nFrameSize, flags);
+        LOGV("AudioRecord created %p, this %p", record, this);
+    }
+    else
+    {
+        record = new AudioRecord(
+                     iAudioSource, iAudioSamplingRate,
+                     iAudioFormatType,
+                     (iAudioNumChannels > 1) ? AudioSystem::CHANNEL_IN_STEREO : AudioSystem::CHANNEL_IN_MONO,
+                     4*kBufferSize/iAudioNumChannels/nFrameSize, flags);
+        LOGV("AudioRecord created %p, this %p", record, this);
+    }
 
     status_t res = record->initCheck();
     if (res == NO_ERROR)
@@ -1327,6 +1344,9 @@ int AndroidAudioInput::audin_thread_func() {
             }
 
             int dataDuration = 0;
+            uint16_t numFrames;
+            if (iAudioFormatType == android::AudioSystem::AAC)
+                numFrames =(*((uint16_t*)(data + (4 * sizeof(uint8_t)))));
 
             // Do not miss any samples if compressed stream.
             if (iAudioFormatType == android::AudioSystem::PCM_16_BIT)
@@ -1347,6 +1367,10 @@ int AndroidAudioInput::audin_thread_func() {
             else if (iAudioFormatType == android::AudioSystem::QCELP)
             {
               dataDuration = (numOfBytes/iAudioNumChannels/ 35) * 20; //ms
+            }
+            else if (iAudioFormatType == android::AudioSystem::AAC)
+            {
+              dataDuration = numFrames * ((1024 *1000)/(float)iAudioSamplingRate); //ms
             }
 
             MicData micdata(data, numOfBytes, iTimeStamp,
@@ -1405,13 +1429,41 @@ void AndroidAudioInput::SendMicData(void)
 
     // send data to Peer & store the id
     PvmiMediaXferHeader data_hdr;
-    data_hdr.seq_num=iDataEventCounter-1;
+    data_hdr.seq_num=iDataEventCounter;
     data_hdr.timestamp = data.iTimestamp;
     data_hdr.flags=0;
     data_hdr.duration = data.iDuration;
     data_hdr.stream_id=0;
     int32 err = 0;
     PVMFCommandId writeAsyncID = 0;
+
+   // Send decoder specific info
+   if((iDataEventCounter == 0) && (iAudioFormatType == android::AudioSystem::AAC))
+   {
+        uint32  aac_frequency_index[16] = {96000,88200,64000,48000,44100,32000,24000,
+                                           22050,16000,12000,11025,8000,7350,
+                                           0x000,//invalid index
+                                           0x000,//invalid index
+                                           0x000 // no index, value provided is actual frequency
+                                          };
+	         // Default config params for AAC encoding
+        uint8 AudioObjectType = 2; //Low complex object(5 bits)
+
+        uint8 SampleRateIndex;
+	for(int i=0;i<16;i++)
+            if(aac_frequency_index[i] == iAudioSamplingRate)
+               SampleRateIndex = i;
+
+        uint8 ChannelConfig = iAudioNumChannels; //No. of channels (4 bits)
+        uint8 GASpecificConfig = 0; // (3 bits)
+
+        configData[0] = (AudioObjectType << 3) | (SampleRateIndex >> 1);
+        configData[1] = ((SampleRateIndex & 0x1) << 7) | (ChannelConfig << 3) | GASpecificConfig;
+        LOGV("Sending format specific info");
+        iPeer->writeAsync(PVMI_MEDIAXFER_FMT_TYPE_NOTIFICATION, PVMI_MEDIAXFER_FMT_INDEX_FMT_SPECIFIC_INFO,
+                          (uint8 *)&configData[0], 2, data_hdr);
+   }
+
     OSCL_TRY(err,
              writeAsyncID = iPeer->writeAsync(PVMI_MEDIAXFER_FMT_TYPE_DATA, 0, data.iData, data.iDataLen, data_hdr);
             );
@@ -1421,6 +1473,7 @@ void AndroidAudioInput::SendMicData(void)
              iWriteResponseQueueLock.Unlock();
              return;
              );
+        ++iDataEventCounter;
 
     // If MIO is in the EOS, then notify MediaInputnode about the end of stream
     if (iState == STATE_STOPPED)
@@ -1428,6 +1481,7 @@ void AndroidAudioInput::SendMicData(void)
       // This informs the MediaInputnode
       // 3 - PVMI_MEDIAXFER_FMT_TYPE_NOTIFICATION and 3 - PVMI_MEDIAXFER_FMT_INDEX_END_OF_STREAM
       iPeer->writeAsync(3, 3, NULL, 0, data_hdr);
+      iDataEventCounter = 0;
     }
 
     // Save the id and data pointer on iSentMediaData queue for writeComplete call
@@ -1507,6 +1561,11 @@ PVMFStatus AndroidAudioInput::VerifyAndSetParameter(PvmiKvp* aKvp, bool aSetPara
         else if (pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_EVRC) == 0)
         {
             iAudioFormatType = android::AudioSystem::EVRC;
+            return PVMFSuccess;
+        }
+        else if (pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_MPEG4_AUDIO) == 0)
+        {
+            iAudioFormatType = android::AudioSystem::AAC;
             return PVMFSuccess;
         }
         else

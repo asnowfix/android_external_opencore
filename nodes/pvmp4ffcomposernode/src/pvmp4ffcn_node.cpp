@@ -2407,41 +2407,96 @@ PVMFStatus PVMp4FFComposerNode::ProcessIncomingMsg(PVMFPortInterface* aPort)
             }
 
             Oscl_Vector<OsclMemoryFragment, OsclMemAllocator> pFrame; //vector to store the nals in the particular case of AVC
-            for (uint32 i = 0; (i < numFrags) && status == PVMFSuccess; i++)
+            if (!mediaDataPtr->getMediaFragment(0, memFrag))
             {
-                if (!mediaDataPtr->getMediaFragment(i, memFrag))
-                {
-                    status = PVMFFailure;
-                }
-                else
-                {
-                    OsclMemoryFragment memfragment;
-                    memfragment.len = memFrag.getMemFragSize();
-                    memfragment.ptr = memFrag.getMemFragPtr();
-                    pFrame.push_back(memfragment);
-                }
+                    return PVMFFailure;
             }
+            uint8_t *bufPtrPos =(uint8_t *) (memFrag.getMemFragPtr());
+            // multiple frames in single fragment support
+            if(((*((uint32_t*)(bufPtrPos))) == 0x51434F4D) /* magic number to indicate tunnel mode encoding support */
+                  && (port->GetFormat() == PVMF_MIME_MPEG4_AUDIO))
+            {
+                uint16_t frameSize;
+                uint8_t *frameptr;
+                uint32 initialTimeStamp = timestamp;
+                PVMP4FFCNFormatSpecificConfig* config = port->GetFormatSpecificConfig();
 
+                bufPtrPos+=4; //skip magic number
+                uint16_t frameCount  = *((uint16_t*)(bufPtrPos));
+                bufPtrPos+=2;//skip frame counter
+
+                for(int i=0;i<frameCount;i++)
+                {
+                    frameSize = *((uint16_t*)(bufPtrPos));
+                    bufPtrPos+=2;
+                    frameptr = bufPtrPos ;
+                    OsclMemoryFragment memfragment;
+                    memfragment.len = frameSize;
+                    memfragment.ptr = frameptr;
+                    pFrame.push_back(memfragment);
+                    bufPtrPos += frameSize;
+                    timestamp = initialTimeStamp + (((1024 *1000)/(float)config->iSamplingRate) * i);
 #ifdef ANDROID
-            if (!iMaxReachedEvent)
-            {
-                // TODO: We are passing port and port->GetFormat(), should pass port only.
-                status = iFragmentWriter->enqueueMemFragToTrack(
-                             pFrame, memFrag, port->GetFormat(), timestamp,
-                             trackId, (PVMp4FFComposerPort*)aPort);
-            }
-            else if (!iMaxReachedReported)
-            {
-                iMaxReachedReported = true;
-                ReportInfoEvent(static_cast<PVMFComposerSizeAndDurationEvent>(iMaxReachedEvent), NULL);
-                status = PVMFSuccess;
-            }
+                if (!iMaxReachedEvent)
+                {
+                    // TODO: We are passing port and port->GetFormat(), should pass port only.
+                    status = iFragmentWriter->enqueueMemFragToTrack(
+                                 pFrame, memFrag, port->GetFormat(), timestamp,
+                                 trackId, (PVMp4FFComposerPort*)aPort);
+                }
+                else if (!iMaxReachedReported)
+                {
+                    iMaxReachedReported = true;
+                    ReportInfoEvent(static_cast<PVMFComposerSizeAndDurationEvent>(iMaxReachedEvent), NULL);
+                    status = PVMFSuccess;
+                }
 #else
-            status = AddMemFragToTrack(pFrame, memFrag, port->GetFormat(), timestamp,
-                                       trackId, (PVMp4FFComposerPort*)aPort);
+                status = AddMemFragToTrack(pFrame, memFrag, port->GetFormat(), timestamp,
+                                           trackId, (PVMp4FFComposerPort*)aPort);
 #endif
-            if (status == PVMFFailure)
-                ReportErrorEvent(PVMF_MP4FFCN_ERROR_ADD_SAMPLE_TO_TRACK_FAILED, (OsclAny*)aPort);
+                if (status == PVMFFailure)
+                    ReportErrorEvent(PVMF_MP4FFCN_ERROR_ADD_SAMPLE_TO_TRACK_FAILED, (OsclAny*)aPort);
+
+                     pFrame.erase(&pFrame[0]);
+                 }
+            }
+            else  //single frame in multiple fragments
+            {
+                 for (uint32 i = 0; (i < numFrags) && status == PVMFSuccess; i++)
+                 {
+                   if (!mediaDataPtr->getMediaFragment(i, memFrag))
+                   {
+                    status = PVMFFailure;
+                   }
+                   else
+                   {
+                       OsclMemoryFragment memfragment;
+                       memfragment.len = memFrag.getMemFragSize();
+                       memfragment.ptr = memFrag.getMemFragPtr();
+                       pFrame.push_back(memfragment);
+                   }
+                }
+#ifdef ANDROID
+                if (!iMaxReachedEvent)
+                {
+                    // TODO: We are passing port and port->GetFormat(), should pass port only.
+                    status = iFragmentWriter->enqueueMemFragToTrack(
+                                 pFrame, memFrag, port->GetFormat(), timestamp,
+                                 trackId, (PVMp4FFComposerPort*)aPort);
+                }
+                else if (!iMaxReachedReported)
+                {
+                    iMaxReachedReported = true;
+                    ReportInfoEvent(static_cast<PVMFComposerSizeAndDurationEvent>(iMaxReachedEvent), NULL);
+                    status = PVMFSuccess;
+                }
+#else
+                status = AddMemFragToTrack(pFrame, memFrag, port->GetFormat(), timestamp,
+                                           trackId, (PVMp4FFComposerPort*)aPort);
+#endif
+                if (status == PVMFFailure)
+                    ReportErrorEvent(PVMF_MP4FFCN_ERROR_ADD_SAMPLE_TO_TRACK_FAILED, (OsclAny*)aPort);
+            }
         }
         break;
 

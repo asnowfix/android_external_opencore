@@ -497,13 +497,25 @@ void AuthorDriver::handleSetAudioEncoder(set_audio_encoder_command *ac)
         if (mSamplingRate == 0)
         {
             // No sampling rate set, use the default
-            mSamplingRate = DEFAULT_AUDIO_SAMPLING_RATE;
+            mSamplingRate = 48000;
+        }
+        else if (mSamplingRate != 48000)
+        {
+            LOGE("Only valid sampling rate for AAC is 48kHz.");
+            commandFailed(ac);
+            return;
         }
         // Check the number of channels
         if (mNumberOfChannels == 0)
         {
             // Number of channels not set, use the default
-            mNumberOfChannels = DEFAULT_AUDIO_NUMBER_OF_CHANNELS;
+            mNumberOfChannels = 2;
+        }
+        else if (mNumberOfChannels != 2)
+        {
+            LOGE("Only valid number of channels for AAC is 2.");
+            commandFailed(ac);
+            return;
         }
 
         // Is file container type AAC-ADIF?
@@ -523,6 +535,7 @@ void AuthorDriver::handleSetAudioEncoder(set_audio_encoder_command *ac)
         {
             // AAC for mixed audio/video containers
             iAudioEncoderMimeType = "/x-pvmf/audio/encode/X-MPEG4-AUDIO";
+            iAudioFormat = PVMF_MIME_MPEG4_AUDIO;
         }
         break;
 
