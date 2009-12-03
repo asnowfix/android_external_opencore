@@ -253,7 +253,7 @@ PVMFCommandId PvmfMediaInputNodeOutPort::writeAsync(uint8 format_type, int32 for
         const PvmiMediaXferHeader& data_header_info,
         OsclAny* context)
 {
-    if (iState == PvmfMediaInputNodeOutPort::PORT_STATE_STOPPED)
+    if (iState == PvmfMediaInputNodeOutPort::PORT_STATE_STOPPED && data_len < 0 )
     {
         // In Stopped state we are not going to accept any buffers
         OsclError::Leave(OsclErrNotReady);

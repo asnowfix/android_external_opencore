@@ -1114,6 +1114,8 @@ PVMFStatus AndroidCameraInput::VerifyAndSetParameter(PvmiKvp* aKvp,
         iAuthorClock = (PVMFMediaClock*)aKvp->value.key_specific_value;
         return PVMFSuccess;
     }
+	else if (pv_mime_strcmp(aKvp->key, PVMF_MEDIA_INPUT_NODE_CAP_CONFIG_INTERFACE_KEY) == 0)
+	    return PVMFSuccess;		
 
     LOGE("Unsupported parameter(%s)", aKvp->key);
     return PVMFFailure;

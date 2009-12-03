@@ -2539,7 +2539,7 @@ bool PVMFOMXEncNode::SetMP4EncoderParameters()
     Mpeg4Type.nIDCVLCThreshold = 0;
     Mpeg4Type.bACPred = OMX_TRUE;
     Mpeg4Type.nMaxPacketSize = iVideoEncodeParam.iPacketSize;
-    Mpeg4Type.nTimeIncRes = 1000; // (in relation to (should be higher than) frame rate )
+    Mpeg4Type.nTimeIncRes = 60; // (in relation to (should be higher than) frame rate )
     Mpeg4Type.nHeaderExtension = 0;
     Mpeg4Type.bReversibleVLC = ((iVideoEncodeParam.iRVLCEnable == true) ? OMX_TRUE : OMX_FALSE);
 
@@ -5050,7 +5050,7 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
     // address of the mempool buffer (so that it can be released)
     OsclAny *pContext = (OsclAny*) aBuffer->pAppPrivate;
 
-
+    uint32 nal_size= 0;
     // check for EOS flag
     if ((aBuffer->nFlags & OMX_BUFFERFLAG_EOS))
     {
@@ -5210,17 +5210,39 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
                 if (aBuffer->nFilledLen <= (capacity - length))
                 {
                     iSPSs[iNumSPSs].ptr = destptr;
-                    iSPSs[iNumSPSs++].len = aBuffer->nFilledLen;
+					iSPSs[iNumSPSs++].len = nal_size;//aBuffer->nFilledLen;
 
-                    oscl_memcpy(destptr, pBufdata, aBuffer->nFilledLen); // copy SPS into iParamSet memfragment
-                    length += aBuffer->nFilledLen;
+					oscl_memcpy(destptr, pBufdata, nal_size); // copy SPS into iParamSet memfragment
+					length += nal_size;
                     iParamSet.getMemFrag().len = length; // update length
+                    destptr += nal_size;
                 }
 
+				uint8* pData = (uint8*)aBuffer->pBuffer + nal_size +iFirstNALStartCodeSize;
+				uint32 size = aBuffer->nFilledLen -(nal_size +iFirstNALStartCodeSize) ;
+				AVCAnnexBGetNALUnit(pData, &bitstream, (int32*)&size, false) ;		
+				nal_size = size;	
+				nal_type = bitstream[0] & 0x1F;
+				if (nal_type == 0x08) // PPS type NAL
+				{
+										// can the PPS fit into the buffer?
+					if (aBuffer->nFilledLen <= (capacity - length))
+					{
+                                                
+						iPPSs[iNumPPSs].ptr = destptr;
+						iPPSs[iNumPPSs++].len = nal_size;//aBuffer->nFilledLen;
+
+						oscl_memcpy(destptr, bitstream, nal_size); // copy PPS into iParamSet memfragment
+						length += nal_size;//aBuffer->nFilledLen;
+						iParamSet.getMemFrag().len = length; // update length
+
+
+					}
 
                 // release the OMX buffer
                 iOutBufMemoryPool->deallocate(pContext);
                 return OMX_ErrorNone;
+            }
             }
             else if (nal_type == 0x08) // PPS type NAL
             {
