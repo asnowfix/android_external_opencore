@@ -68,13 +68,13 @@
 // Platform-specic and temporal workaround to prevent video size
 // from being set too large
 
-#define ANDROID_MAX_ENCODED_FRAME_WIDTH            352
-#define ANDROID_MAX_ENCODED_FRAME_HEIGHT           288
 #define ANDROID_MIN_ENCODED_FRAME_WIDTH            176
 #define ANDROID_MIN_ENCODED_FRAME_HEIGHT           144
+#define ANDROID_MAX_ENCODED_FRAME_WIDTH            800
+#define ANDROID_MAX_ENCODED_FRAME_HEIGHT           480
 
 #define ANDROID_MIN_FRAME_RATE_FPS                 5
-#define ANDROID_MAX_FRAME_RATE_FPS                 20
+#define ANDROID_MAX_FRAME_RATE_FPS                 30
 
 static const int32 DEFAULT_VIDEO_FRAME_RATE  = 20;
 static const int32 DEFAULT_VIDEO_WIDTH       = 176;
