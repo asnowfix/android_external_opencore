@@ -494,6 +494,7 @@ void AuthorDriver::handleSetAudioEncoder(set_audio_encoder_command *ac)
 
     case AUDIO_ENCODER_AAC:
         // Check the sampling rate
+#ifndef SURF7x30
         if (mSamplingRate == 0)
         {
             // No sampling rate set, use the default
@@ -517,7 +518,31 @@ void AuthorDriver::handleSetAudioEncoder(set_audio_encoder_command *ac)
             commandFailed(ac);
             return;
         }
-
+#else
+        if (mSamplingRate == 0)
+        {
+            // No sampling rate set, use the default
+            mSamplingRate = 8000;
+        }
+        else if (mSamplingRate != 8000)
+        {
+            LOGE("Only valid sampling rate for AAC is 8kHz.");
+            commandFailed(ac);
+            return;
+        }
+        // Check the number of channels
+        if (mNumberOfChannels == 0)
+        {
+            // Number of channels not set, use the default
+            mNumberOfChannels = 1;
+        }
+        else if (mNumberOfChannels != 1)
+        {
+            LOGE("Only valid number of channels for AAC is 1.");
+            commandFailed(ac);
+            return;
+        }
+#endif
         // Is file container type AAC-ADIF?
         if(mOutputFormat == OUTPUT_FORMAT_AAC_ADIF)
         {

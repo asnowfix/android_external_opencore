@@ -22,10 +22,16 @@ LOCAL_CFLAGS := $(PV_CFLAGS)
 # board-specific configuration
 LOCAL_CFLAGS += $(BOARD_OPENCORE_FLAGS)
 
-ifeq ($(strip $(BOARD_USES_QCOM_7x_CHIPSET)), true)
-    LOCAL_CFLAGS += -DSURF
-else ifeq ($(strip $(BOARD_USES_QCOM_8x_CHIPSET)), true)
-    LOCAL_CFLAGS += -DSURF8K
+ifeq ($(TARGET_BOARD_PLATFORM),msm7k)
+    ifeq ($(BOARD_USES_QCOM_AUDIO_V2), true)
+        LOCAL_CFLAGS += -DSURF7x30
+    else
+        LOCAL_CFLAGS += -DSURF
+    endif
+else
+    ifeq ($(TARGET_BOARD_PLATFORM),qsd8k)
+        LOCAL_CFLAGS += -DSURF8K
+    endif
 endif
 
 LOCAL_ARM_MODE := arm
