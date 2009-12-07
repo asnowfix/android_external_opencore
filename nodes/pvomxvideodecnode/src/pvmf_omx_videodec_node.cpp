@@ -220,6 +220,7 @@ PVMFStatus PVMFOMXVideoDecNode::HandlePortReEnable()
     if (iPortIndexForDynamicReconfig == iOutputPortIndex)
     {
         iOMXComponentOutputBufferSize = iParamPort.nBufferSize;
+        iNumOutputBuffers = iParamPort.nBufferCountActual;
 
         // do we need to increase the number of buffers?
         if (iNumOutputBuffers < iParamPort.nBufferCountMin)
