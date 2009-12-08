@@ -889,7 +889,7 @@ PVMFOMXEncNode::PVMFOMXEncNode(int32 aPriority) :
     iVideoEncodeParam.iNoCurrentSkip = false;
     iVideoEncodeParam.iNoFrameSkip = false;
     iVideoEncodeParam.iClipDuration = 0;
-    iVideoEncodeParam.iProfileLevel = EI_CORE_LEVEL2;
+    iVideoEncodeParam.iProfileLevel = EI_SIMPLE_LEVEL2;
     /////////////////AVC SPECIFIC///////////////////////////
     iVideoEncodeParam.iEncMode = EI_ENCMODE_RECORDER;
     iVideoEncodeParam.iAVCProfile = EI_PROFILE_BASELINE;
