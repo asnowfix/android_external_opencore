@@ -829,6 +829,13 @@ class PVMFOMXBaseDecNode
 
         // flag to indicate configuration is in progress
         bool iConfigInProgress;
+        //
+        // Duration to be used on output buffer
+        // Maintain a vector to store the sample duration.
+        Oscl_Vector<uint32, OsclMemAllocator> iSampleDurationVec;
+        // Also store the timestamp in a vector. This will help us to
+        // validate if the input sample was properly decoded.
+        Oscl_Vector<uint32, OsclMemAllocator> iTimestampVec;
 };
 
 

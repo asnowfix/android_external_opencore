@@ -1534,6 +1534,37 @@ bool PVMFOMXVideoDecNode::QueueOutputBuffer(OsclSharedPtr<PVMFMediaDataImpl> &me
         // Set timestamp
         mediaDataOut->setTimestamp(iOutTimeStamp);
 
+        // If Duration is available, set the Duration Bit flag in MarkerInfo and set the duration
+        if ((iSampleDurationVec.size() > 0) && (iSampleDurationVec.back() > 0))
+        {
+            // continue this until iOutTimestamp matches the timestamp in the queue.
+            while (!(iTimestampVec.empty()) && (iOutTimeStamp > iTimestampVec.back()))
+            {
+                // continue discarding samples
+                iTimestampVec.pop_back();
+                iSampleDurationVec.pop_back();
+            }
+
+            // Go further only if the sample timestamp matches with the one in TimeStamp vector queue
+            if (iOutTimeStamp == iTimestampVec.back())
+            {
+                uint32 markerInfo = 0;
+                markerInfo |= mediaDataOut->getMarkerInfo();
+
+                //set the duration bit
+                markerInfo |= PVMF_MEDIA_DATA_MARKER_INFO_DURATION_AVAILABLE_BIT;
+                // set the markerInfo
+                mediaDataOut->setMarkerInfo(markerInfo);
+
+                // set the duration and then erase from SampleDurationVector
+                mediaDataOut->setDuration(iSampleDurationVec.back());
+                iSampleDurationVec.pop_back();
+
+                // also pop out the Timestamp from thw queue
+                iTimestampVec.pop_back();
+            }
+        }
+
         // Set Streamid
         mediaDataOut->setStreamID(iStreamID);
 
