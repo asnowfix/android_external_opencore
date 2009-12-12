@@ -827,6 +827,8 @@ class PVMFOMXBaseDecNode
         OSCL_IMPORT_REF OMX_TICKS ConvertTimestampIntoOMXTicks(const MediaClockConverter &src);
         uint32 ConvertOMXTicksIntoTimestamp(const OMX_TICKS &src);
 
+        // flag to indicate configuration is in progress
+        bool iConfigInProgress;
 };
 
 

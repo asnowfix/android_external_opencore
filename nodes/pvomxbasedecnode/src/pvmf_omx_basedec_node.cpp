@@ -578,6 +578,7 @@ OSCL_EXPORT_REF PVMFOMXBaseDecNode::PVMFOMXBaseDecNode(int32 aPriority, const ch
     iDynamicReconfigInProgress = false;
     iPauseCommandWasSentToComponent = false;
     iStopCommandWasSentToComponent = false;
+    iConfigInProgress = false;
 
     // capability related, set to default values
     iOMXComponentSupportsExternalOutputBufferAlloc = false;
@@ -1184,15 +1185,23 @@ PVMFStatus PVMFOMXBaseDecNode::HandleProcessingState()
         case EPVMFOMXBaseDecNodeProcessingState_InitDecoder:
         {
             // do init only if input data is available
-            if (iDataIn.GetRep() != NULL)
+            if (iDataIn.GetRep() != NULL || iConfigInProgress)
             {
+
+            while (iNumOutstandingOutputBuffers < iNumOutputBuffers)
+            {
+                // grab buffer header from the mempool if possible, and send to component
+                if (!SendOutputBufferToOMXComponent())
+                {
+                    break;
+                }
+            }
+
                 if (!InitDecoder(iDataIn))
                 {
-                    // Decoder initialization failed. Fatal error
+                    // Decoder initialization failed.
                     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
                                     (0, "%s::HandleProcessingState() Decoder initialization failed", iName.Str()));
-                    ReportErrorEvent(PVMFErrResourceConfiguration);
-                    ChangeNodeState(EPVMFNodeError);
                     status = PVMFPending;
                     break;
                 }

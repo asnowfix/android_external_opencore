@@ -198,6 +198,9 @@ PVMFOMXVideoDecNode::PVMFOMXVideoDecNode(int32 aPriority) :
     iStride = 0;
     iSliceHeight = 0;
     iUpstreamParsing = 0;
+    iH264FragSize = 0;
+    iH264InitBuffer = NULL;
+    iH264InitBufSize = 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1153,7 +1156,7 @@ bool PVMFOMXVideoDecNode::InitDecoder(PVMFSharedMediaDataPtr& DataIn)
 {
     OSCL_UNUSED_ARG(DataIn);
 
-    uint16 length = 0, size = 0;
+    uint16 length = 0;
     uint8 *tmp_ptr;
     PVMFFormatType Format = PVMF_MIME_FORMAT_UNKNOWN;
 
@@ -1173,37 +1176,43 @@ bool PVMFOMXVideoDecNode::InitDecoder(PVMFSharedMediaDataPtr& DataIn)
     if (Format == PVMF_MIME_H264_VIDEO ||
             Format == PVMF_MIME_H264_VIDEO_MP4)
     {
-        uint8* initbuffer = ((PVMFOMXDecPort*)iInPort)->getTrackConfig();
-        int32 initbufsize = (int32)((PVMFOMXDecPort*)iInPort)->getTrackConfigSize();
+        if(!iConfigInProgress)
+        {
+           iH264InitBuffer = ((PVMFOMXDecPort*)iInPort)->getTrackConfig();
+           iH264InitBufSize = (int32)((PVMFOMXDecPort*)iInPort)->getTrackConfigSize();
+        }
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, "PVMFOMXVideoDecNode::InitDecoder() for H264 Decoder. Initialization data Size %d.", iH264InitBufSize));
 
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, "PVMFOMXVideoDecNode::InitDecoder() for H264 Decoder. Initialization data Size %d.", initbufsize));
-
-        if (initbufsize > 0)
+        if (iH264InitBufSize > 0)
         {
 
             // there may be more than 1 NAL in config info in format specific data memfragment (SPS, PPS)
-            tmp_ptr = initbuffer;
+            tmp_ptr = iH264InitBuffer;
             do
             {
                 length = (uint16)(tmp_ptr[1] << 8) | tmp_ptr[0];
-                size += (length + 2);
-                if (size > initbufsize)
+                iH264FragSize += (length + 2);
+                if (iH264FragSize > iH264InitBufSize)
+                {
+                    iConfigInProgress = false;
                     break;
+                }
                 tmp_ptr += 2;
-
 
                 if (!SendConfigBufferToOMXComponent(tmp_ptr, length))
                 {
                     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
                                     (0, "PVMFOMXVideoDecNode::InitDecoder() Error in processing config buffer"));
+                    iConfigInProgress = true;
+                    tmp_ptr -= 2;
+                    iH264FragSize -= (length + 2);
                     return false;
-
                 }
 
                 tmp_ptr += length;
-
+                iH264InitBuffer = tmp_ptr;
             }
-            while (size < initbufsize);
+            while (iH264FragSize < iH264InitBufSize);
         }
     }
     else if (Format == PVMF_MIME_M4V ||
@@ -1344,7 +1353,14 @@ OMX_ERRORTYPE PVMFOMXVideoDecNode::EventHandlerProcessing(OMX_OUT OMX_HANDLETYPE
                     {
                         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
                                         (0, "PVMFOMXVideoDecNode::EventHandlerProcessing: OMX_CommandPortEnable - completed on port %d, resuming normal data flow", aData2));
-                        iProcessingState = EPVMFOMXBaseDecNodeProcessingState_ReadyToDecode;
+                        if(iConfigInProgress)
+                        {
+                            iProcessingState = EPVMFOMXBaseDecNodeProcessingState_InitDecoder;
+                        }
+                        else
+                        {
+                             iProcessingState = EPVMFOMXBaseDecNodeProcessingState_ReadyToDecode;
+                        }
                         iDynamicReconfigInProgress = false;
                         // in case pause or stop command was sent to component
                         // change processing state (because the node might otherwise
