@@ -582,6 +582,7 @@ AtomUtils::getNextAtomType(MP4_FF_FILE *fp, uint32 &size, uint32 &type)
             type == PV_CONTENT_TYPE_ATOM ||
             type == AMR_SAMPLE_ENTRY_ATOM ||
             type == AMRWB_SAMPLE_ENTRY_ATOM ||
+            type == AMRWBP_SAMPLE_ENTRY_ATOM ||
             type == QCELP_SAMPLE_ENTRY_ATOM ||
             type == EVRC_SAMPLE_ENTRY_ATOM ||
             type == H263_SAMPLE_ENTRY_ATOM ||
@@ -590,6 +591,7 @@ AtomUtils::getNextAtomType(MP4_FF_FILE *fp, uint32 &size, uint32 &type)
             type == MPEG_SAMPLE_ENTRY ||
             type == UUID_ATOM ||
             type == AMR_SPECIFIC_ATOM ||
+            type == AMRWBP_SPECIFIC_ATOM ||
             type == QCELP_SPECIFIC_ATOM ||
             type == EVRC_SPECIFIC_ATOM ||
             type == H263_SPECIFIC_ATOM ||

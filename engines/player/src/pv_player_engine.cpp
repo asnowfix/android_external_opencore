@@ -1722,6 +1722,7 @@ bool PVPlayerEngine::FindTrackForDatapathUsingMimeString(bool& aVideoTrack, bool
                  (pv_mime_strcmp(mimeString, PVMF_MIME_AMRWB) == 0) ||
                  (pv_mime_strcmp(mimeString, PVMF_MIME_AMR_IETF) == 0) ||
                  (pv_mime_strcmp(mimeString, PVMF_MIME_AMRWB_IETF) == 0) ||
+                 (pv_mime_strcmp(mimeString, PVMF_MIME_AMRWBP_IETF) == 0) ||
                  (pv_mime_strcmp(mimeString, PVMF_MIME_AMR_IF2) == 0) ||
                  (pv_mime_strcmp(mimeString, PVMF_MIME_QCELP) == 0) ||
                  (pv_mime_strcmp(mimeString, PVMF_MIME_EVRC) == 0) ||
@@ -1800,6 +1801,7 @@ bool PVPlayerEngine::FindDatapathForTrackUsingMimeString(bool aVideoTrack, bool 
                         (pv_mime_strcmp(mimeString, PVMF_MIME_AMRWB) == 0) ||
                         (pv_mime_strcmp(mimeString, PVMF_MIME_AMR_IETF) == 0) ||
                         (pv_mime_strcmp(mimeString, PVMF_MIME_AMRWB_IETF) == 0) ||
+                        (pv_mime_strcmp(mimeString, PVMF_MIME_AMRWBP_IETF) == 0) ||
                         (pv_mime_strcmp(mimeString, PVMF_MIME_AMR_IF2) == 0) ||
                         (pv_mime_strcmp(mimeString, PVMF_MIME_QCELP) == 0) ||
                         (pv_mime_strcmp(mimeString, PVMF_MIME_EVRC) == 0) ||

@@ -213,6 +213,7 @@ PVMFMP4FFParserNode::PVMFMP4FFParserNode(int32 aPriority) :
              iCapability.iInputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_MPEG4FF));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_AMR_IETF));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_AMRWB_IETF));
+             iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_AMRWBP_IETF));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_QCELP));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_EVRC));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_MPEG4_AUDIO));
@@ -2311,6 +2312,11 @@ void PVMFMP4FFParserNode::GetTrackMaxParameters(PVMFFormatType aFormatType, uint
         aMaxQueueDepth = AMR_IETF_MAXTRACKQUEUEDEPTH;
     }
     else if (aFormatType == PVMF_MIME_AMRWB_IETF)
+    {
+        aMaxDataSize = AMRWB_IETF_MAXTRACKDATASIZE;
+        aMaxQueueDepth = AMRWB_IETF_MAXTRACKQUEUEDEPTH;
+    }
+    else if (aFormatType == PVMF_MIME_AMRWBP_IETF)
     {
         aMaxDataSize = AMRWB_IETF_MAXTRACKDATASIZE;
         aMaxQueueDepth = AMRWB_IETF_MAXTRACKQUEUEDEPTH;
@@ -8714,6 +8720,7 @@ uint32 PVMFMP4FFParserNode::GetNumAudioChannels(uint32 aId)
     if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR, oscl_strlen(PVMF_MIME_AMR)) == 0) ||
             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0) ||
+            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWBP_IETF, oscl_strlen(PVMF_MIME_AMRWBP_IETF)) == 0) ||
             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_QCELP, oscl_strlen(PVMF_MIME_QCELP)) == 0) ||
             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_EVRC, oscl_strlen(PVMF_MIME_EVRC)) == 0))
     {
@@ -8767,6 +8774,11 @@ uint32 PVMFMP4FFParserNode::GetAudioSampleRate(uint32 aId)
         sample_rate = 8000;
     }
     else if (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0)
+    {
+        //always 16KHz
+        sample_rate = 16000;
+    }
+    else if (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWBP_IETF, oscl_strlen(PVMF_MIME_AMRWBP_IETF)) == 0)
     {
         //always 16KHz
         sample_rate = 16000;

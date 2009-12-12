@@ -63,6 +63,7 @@ OSCL_EXPORT_REF bool PVMFFormatType::isAudio() const
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_PCM16_BE) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_AMR_IETF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_AMRWB_IETF) == 0) ||
+            (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_AMRWBP_IETF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_AMR_IF2) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_ADIF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_ADTS) == 0) ||

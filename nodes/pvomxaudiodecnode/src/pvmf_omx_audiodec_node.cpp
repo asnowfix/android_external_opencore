@@ -150,6 +150,7 @@ PVMFOMXAudioDecNode::PVMFOMXAudioDecNode(int32 aPriority) :
              iCapability.iInputFormatCapability.push_back(PVMF_MIME_AMR_IETF);
              iCapability.iInputFormatCapability.push_back(PVMF_MIME_AMR);
              iCapability.iInputFormatCapability.push_back(PVMF_MIME_AMRWB_IETF);
+             iCapability.iInputFormatCapability.push_back(PVMF_MIME_AMRWBP_IETF);
              iCapability.iInputFormatCapability.push_back(PVMF_MIME_AMRWB);
 
              iCapability.iInputFormatCapability.push_back(PVMF_MIME_MP3);
@@ -594,6 +595,11 @@ PVMFStatus PVMFOMXAudioDecNode::HandlePortReEnable()
     {
         // AMR WB has fs=16khz Mono and the frame is 20ms long, i.e. there is 320 samples per frame
         iSamplesPerFrame = PVOMXAUDIODEC_AMRWB_SAMPLES_PER_FRAME;
+    }
+    else if (Format == PVMF_MIME_AMRWBP_IETF)
+    {
+        // AMR WB+
+        iSamplesPerFrame = 0; //unknown
     }
     else if (Format == PVMF_MIME_MP3)
     {
@@ -1424,7 +1430,8 @@ bool PVMFOMXAudioDecNode::NegotiateComponentParameters(OMX_PTR aOutputParameters
              Format == PVMF_MIME_AMR_IETF ||
              Format == PVMF_MIME_AMR ||
              Format == PVMF_MIME_AMRWB_IETF ||
-             Format == PVMF_MIME_AMRWB)
+             Format == PVMF_MIME_AMRWB ||
+             Format == PVMF_MIME_AMRWBP_IETF)
     {
         iOMXAudioCompressionFormat = OMX_AUDIO_CodingAMR;
     }
@@ -1547,6 +1554,7 @@ bool PVMFOMXAudioDecNode::GetSetCodecSpecificInfo()
              Format == PVMF_MIME_AMR_IETF ||
              Format == PVMF_MIME_AMR ||
              Format == PVMF_MIME_AMRWB_IETF ||
+             Format == PVMF_MIME_AMRWBP_IETF ||
              Format == PVMF_MIME_AMRWB)
     {
         CodecProfilePtr = (OMX_PTR) & Audio_Amr_Param;
@@ -1664,6 +1672,10 @@ bool PVMFOMXAudioDecNode::GetSetCodecSpecificInfo()
         // purposes, we'll set this to any WideBand bitrate
         // to indicate NB vs WB
     }
+    else if (Format == PVMF_MIME_AMRWBP_IETF)
+    {
+        //TBD: Presently there is no AMRWB+ Index Param to configure in the specification
+    }
     else if (Format == PVMF_MIME_MP3)
     {
         // nothing to do here
@@ -1722,6 +1734,10 @@ bool PVMFOMXAudioDecNode::GetSetCodecSpecificInfo()
     {
         // AMR WB has fs=16khz Mono and the frame is 20ms long, i.e. there is 320 samples per frame
         iSamplesPerFrame = PVOMXAUDIODEC_AMRWB_SAMPLES_PER_FRAME;
+    }
+    else if (Format == PVMF_MIME_AMRWBP_IETF)
+    {
+        iSamplesPerFrame = 0; //unknown;
     }
     else if (Format == PVMF_MIME_MP3)
     {
@@ -1878,6 +1894,7 @@ bool PVMFOMXAudioDecNode::InitDecoder(PVMFSharedMediaDataPtr& DataIn)
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMR ||
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB_IETF ||
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB ||
+             ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWBP_IETF ||
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_MP3 ||
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_QCELP ||
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_EVRC)
@@ -2681,6 +2698,7 @@ PVMFStatus PVMFOMXAudioDecNode::DoGetNodeMetadataValue(PVMFOMXBaseDecNodeCommand
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMR) ||
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB_IETF) ||
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB) ||
+                    (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWBP_IETF) ||
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_MP3) ||
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_WMA) ||
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_QCELP) ||
@@ -2734,6 +2752,10 @@ PVMFStatus PVMFOMXAudioDecNode::DoGetNodeMetadataValue(PVMFOMXBaseDecNodeCommand
                     else if (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB)
                     {
                         valuelen = oscl_strlen(_STRLIT_CHAR(PVMF_MIME_AMRWB)) + 1;
+                    }
+                    else if (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWBP_IETF)
+                    {
+                        valuelen = oscl_strlen(_STRLIT_CHAR(PVMF_MIME_AMRWBP_IETF)) + 1;
                     }
                     else if (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_MP3)
                     {
@@ -2810,6 +2832,10 @@ PVMFStatus PVMFOMXAudioDecNode::DoGetNodeMetadataValue(PVMFOMXBaseDecNodeCommand
                         else if (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB)
                         {
                             oscl_strncpy(KeyVal.value.pChar_value, _STRLIT_CHAR(PVMF_MIME_AMRWB), valuelen);
+                        }
+                        else if (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWBP_IETF)
+                        {
+                            oscl_strncpy(KeyVal.value.pChar_value, _STRLIT_CHAR(PVMF_MIME_AMRWBP_IETF), valuelen);
                         }
                         else if (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_MP3)
                         {
@@ -3064,6 +3090,7 @@ uint32 PVMFOMXAudioDecNode::GetNumMetadataValues(PVMFMetadataList& aKeyList)
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMR) ||
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB_IETF) ||
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB) ||
+                    (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWBP_IETF) ||
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_MP3) ||
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_WMA) ||
                     (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_QCELP) ||
@@ -3247,6 +3274,10 @@ PVMFStatus PVMFOMXAudioDecNode::DoCapConfigVerifyParameters(PvmiKvp* aParameters
              aInputs.iMimeType == PVMF_MIME_AMRWB)
     {
         aInputParameters.cComponentRole = (OMX_STRING)"audio_decoder.amrwb";
+    }
+    else if (aInputs.iMimeType == PVMF_MIME_AMRWBP_IETF)
+    {
+        aInputParameters.cComponentRole = (OMX_STRING)"audio_decoder.amrwbp";
     }
     else if (aInputs.iMimeType == PVMF_MIME_MP3)
     {

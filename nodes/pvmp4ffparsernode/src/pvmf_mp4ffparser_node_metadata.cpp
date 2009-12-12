@@ -788,6 +788,7 @@ uint32 PVMFMP4FFParserNode::GetNumMetadataValues(PVMFMetadataList& aKeyList)
                 }
                 else if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
                          (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0) ||
+                         (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWBP_IETF, oscl_strlen(PVMF_MIME_AMRWBP_IETF)) == 0) ||
                          (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_QCELP, oscl_strlen(PVMF_MIME_QCELP)) == 0) ||
                          (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_EVRC, oscl_strlen(PVMF_MIME_EVRC)) == 0))
                 {
@@ -1196,6 +1197,7 @@ int32 PVMFMP4FFParserNode::CountMetaDataKeys()
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR, oscl_strlen(PVMF_MIME_AMR)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0) ||
+                (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWBP_IETF, oscl_strlen(PVMF_MIME_AMRWBP_IETF)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_QCELP, oscl_strlen(PVMF_MIME_QCELP)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_EVRC, oscl_strlen(PVMF_MIME_EVRC)) == 0))
         {
@@ -1436,6 +1438,7 @@ PVMFStatus PVMFMP4FFParserNode::InitMetaData()
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR, oscl_strlen(PVMF_MIME_AMR)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0) ||
+                (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWBP_IETF, oscl_strlen(PVMF_MIME_AMRWBP_IETF)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_QCELP, oscl_strlen(PVMF_MIME_QCELP)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_EVRC, oscl_strlen(PVMF_MIME_EVRC)) == 0))
         {
@@ -3924,7 +3927,8 @@ PVMFStatus PVMFMP4FFParserNode::DoGetMetadataValues(PVMFMP4FFParserNodeCommand& 
                         }
                     }
                     else if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
-                             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0))
+                             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0) ||
+                             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWBP_IETF, oscl_strlen(PVMF_MIME_AMRWBP_IETF)) == 0))
                     {
                         // Increment the counter for the number of values found so far
                         ++numvalentries;
@@ -4457,7 +4461,8 @@ PVMFStatus PVMFMP4FFParserNode::DoGetMetadataValues(PVMFMP4FFParserNodeCommand& 
                         }
                     }
                     else if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
-                             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0))
+                             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0) ||
+                             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWBP_IETF, oscl_strlen(PVMF_MIME_AMRWBP_IETF)) == 0))
                     {
                         if (tracktype == 2)
                         {

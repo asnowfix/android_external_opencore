@@ -82,6 +82,11 @@ OSCL_EXPORT_REF OMX_BOOL OMXConfigParser(
                 aInputs.iMimeType = PVMF_MIME_AMRWB;
 
             }
+            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.amrwbp"))
+            {
+                aInputs.iMimeType = PVMF_MIME_AMRWBP_IETF;
+
+            }
             else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.mp3"))
             {
                 aInputs.iMimeType = PVMF_MIME_MP3;

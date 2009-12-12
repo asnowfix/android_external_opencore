@@ -54,6 +54,10 @@
 #include "amrsampleentry.h"
 #endif
 
+#ifndef AMRWBPSAMPLEENTRY_H_INCLUDED
+#include "amrwbpsampleentry.h"
+#endif
+
 #ifndef QCELPSAMPLEENTRY_H_INCLUDED
 #include "qcelpsampleentry.h"
 #endif
@@ -150,6 +154,11 @@ class SampleDescriptionAtom : public FullAtom
             return _pAMRSampleEntryAtom;
         }
 
+        AMRWBPSampleEntry *getAMRWBPSampleEntry()
+        {
+            return _pAMRWBPSampleEntryAtom;
+        }
+
         QCELPSampleEntry *getQCELPSampleEntry()
         {
             return _pQCELPSampleEntryAtom;
@@ -214,6 +223,7 @@ class SampleDescriptionAtom : public FullAtom
         uint32 _pMediaType;
 
         AMRSampleEntry  *_pAMRSampleEntryAtom;
+        AMRWBPSampleEntry  *_pAMRWBPSampleEntryAtom;
         QCELPSampleEntry  *_pQCELPSampleEntryAtom;
         EVRCSampleEntry  *_pEVRCSampleEntryAtom;
         H263SampleEntry *_pH263SampleEntryAtom;
@@ -224,6 +234,7 @@ class SampleDescriptionAtom : public FullAtom
         bool _o3GPPAMR;
         bool _o3GPPH263;
         bool _o3GPPWBAMR;
+        bool _o3GPPWBPAMR;
         bool _o3GPP2QCELP;
         bool _o3GPP2EVRC;
         bool _oAVC;

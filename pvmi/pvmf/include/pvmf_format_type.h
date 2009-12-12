@@ -95,6 +95,7 @@ typedef OSCL_String PvmfMimeString;
 #define PVMF_MIME_AMR_IETF      "X-AMR-IETF-SEPARATE" // Today's IETF
 #define PVMF_MIME_AMRWB_IETF    "X-AMRWB-IETF-SEPARATE" // Today's IETF
 #define PVMF_MIME_AMR_IF2       "X-AMR-IF2"
+#define PVMF_MIME_AMRWBP_IETF    "X-AMRWBP-IETF-SEPARATE" // Today's IETF
 #define PVMF_MIME_EVRC          "audio/EVRC" // Streaming EVRC format
 #define PVMF_MIME_QCELP          "audio/QCELP" // QCELP format
 #define PVMF_MIME_MP3           "audio/MPEG"

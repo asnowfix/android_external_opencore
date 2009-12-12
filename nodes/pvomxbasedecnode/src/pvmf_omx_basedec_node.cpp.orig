@@ -2019,8 +2019,7 @@ OSCL_EXPORT_REF bool PVMFOMXBaseDecNode::SendInputBufferToOMXComponent()
         //Force marker bit for AMR streaming formats (marker bit may not be set even though full frames are present)
         if (iInPort && (
                        (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMR) ||
-                       (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB) ||
-                       (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWBP_IETF)
+                       (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB)
                     ))
         {
             // FIXME: This could have unintended side effects if other bits in this value are used in the future
@@ -2319,8 +2318,7 @@ OSCL_EXPORT_REF bool PVMFOMXBaseDecNode::SendInputBufferToOMXComponent()
             //Force marker bit for AMR streaming formats (marker bit may not be set even though full frames are present)
             if (iInPort && (
                         (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMR) ||
-                        (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB) ||
-                        (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWBP_IETF)
+                        (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB)
                     ))
             {
                 iCurrentMsgMarkerBit = PVMF_MEDIA_DATA_MARKER_INFO_M_BIT;
@@ -4008,11 +4006,6 @@ void PVMFOMXBaseDecNode::DoPrepare(PVMFOMXBaseDecNodeCommand& aCmd)
                      format == PVMF_MIME_AMRWB)
             {
                 aInputParameters.cComponentRole = (OMX_STRING)"audio_decoder.amrwb";
-                aOutputParameters = (AudioOMXConfigParserOutputs *)oscl_malloc(sizeof(AudioOMXConfigParserOutputs));
-            }
-            else if (format == PVMF_MIME_AMRWBP_IETF)
-            {
-                aInputParameters.cComponentRole = (OMX_STRING)"audio_decoder.amrwbp";
                 aOutputParameters = (AudioOMXConfigParserOutputs *)oscl_malloc(sizeof(AudioOMXConfigParserOutputs));
             }
             else if (format == PVMF_MIME_QCELP)

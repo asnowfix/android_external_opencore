@@ -168,6 +168,7 @@ void PVPlayerRegistryPopulator::RegisterAllNodes(PVPlayerNodeRegistryInterface* 
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMR);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMRWB_IETF);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMRWB);
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_AMRWBP_IETF);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMR_IF2);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_MPEG4_AUDIO);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_3640);
@@ -262,6 +263,7 @@ void PVPlayerRegistryPopulator::RegisterAllNodes(PVPlayerNodeRegistryInterface* 
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMR);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMRWB_IETF);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMRWB);
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_AMRWBP_IETF);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMR_IF2);
     nodeinfo.iNodeUUID = KPVMFGSMAmrNodeUuid;
     nodeinfo.iOutputType.clear();
