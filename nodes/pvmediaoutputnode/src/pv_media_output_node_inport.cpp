@@ -1485,11 +1485,22 @@ PVMediaOutputNodePort::CheckMediaTimeStamp(uint32& aDelta)
         uint32 clock_msec32;
         bool overflowFlag = false;
 
+        uint32 duration = 0;
+        if (iCurrentMediaMsg->getFormatID() < PVMF_MEDIA_CMD_FORMAT_IDS_START)
+        {
+            // get the marker info to check if duration is available
+            PVMFSharedMediaDataPtr mediaData;
+            convertToPVMFMediaData(mediaData, iCurrentMediaMsg);
+
+            if (mediaData->getMarkerInfo() & PVMF_MEDIA_DATA_MARKER_INFO_DURATION_AVAILABLE_BIT)
+            {
+                duration = mediaData->getDuration();
+            }
+        }
         iClock->GetCurrentTime32(clock_msec32, overflowFlag, PVMF_MEDIA_CLOCK_MSEC);
 
-
         uint32 clock_adjforearlymargin = clock_msec32 + iEarlyMargin;
-        uint32 ts_adjforlatemargin = aTimeStamp + iLateMargin;
+        uint32 ts_adjforlatemargin = aTimeStamp + iLateMargin + duration;
 
         if ((clock_adjforearlymargin - aTimeStamp) > WRAP_THRESHOLD)
         {
@@ -2641,7 +2652,17 @@ bool PVMediaOutputNodePort::DataToSkip(PVMFSharedMediaMsgPtr& aMsg)
         if (iSendStartOfDataEvent == true)
         {
             delta = 0;
-            bool tsEarly = PVTimeComparisonUtils::IsEarlier(aMsg->getTimestamp(), iSkipTimestamp, delta);
+            // get the marker info to check if duration is available
+            PVMFSharedMediaDataPtr mediaData;
+            convertToPVMFMediaData(mediaData, aMsg);
+
+            uint32 duration = 0;
+            if (mediaData->getMarkerInfo() & PVMF_MEDIA_DATA_MARKER_INFO_DURATION_AVAILABLE_BIT)
+            {
+                duration = mediaData->getDuration();
+            }
+
+            bool tsEarly = PVTimeComparisonUtils::IsEarlier((aMsg->getTimestamp() + duration), iSkipTimestamp, delta);
             if (tsEarly && delta > 0)
             {
                 //a zero delta could mean the timestamps are equal

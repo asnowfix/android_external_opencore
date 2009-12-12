@@ -604,6 +604,8 @@ OSCL_EXPORT_REF PVMFOMXBaseDecNode::PVMFOMXBaseDecNode(int32 aPriority, const ch
     iCurrentDecoderState = OMX_StateInvalid;
 
     iOutTimeStamp = 0;
+    iSampleDurationVec.reserve(PVMF_OMX_DEC_NODE_PORT_VECTOR_RESERVE);
+    iTimestampVec.reserve(PVMF_OMX_DEC_NODE_PORT_VECTOR_RESERVE);
 
     //if timescale value is 1 000 000 - it means that
     //timestamp is expressed in units of 1/10^6 (i.e. microseconds)
@@ -1123,6 +1125,14 @@ OSCL_EXPORT_REF bool PVMFOMXBaseDecNode::ProcessIncomingMsg(PVMFPortInterface* a
     }
 
     convertToPVMFMediaData(iDataIn, msg);
+
+    // Check if sample duration is available
+    if (iDataIn->getMarkerInfo() & PVMF_MEDIA_DATA_MARKER_INFO_DURATION_AVAILABLE_BIT)
+    {
+        // get the duration
+        iSampleDurationVec.push_front(iDataIn->getDuration());
+        iTimestampVec.push_front(iDataIn->getTimestamp());
+    }
 
 
     iCurrFragNum = 0; // for new message, reset the fragment counter
