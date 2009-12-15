@@ -357,10 +357,12 @@ typedef enum
     MPEG2_AUDIO_LC = 0x67,
     MPEG4_VIDEO = 0x20,
     H263_VIDEO  = 0xc0,
+    /* selected from user private range 0xE2 - 0xFE */
+    /* http://www.mp4ra.org/object.html */
+    AMRWBP_AUDIO_3GPP = 0xF7,
     QCELP_AUDIO_3GPP2 = 0xF8,
     EVRC_AUDIO_3GPP2 = 0xF9,
     AMRWB_AUDIO_3GPP = 0xFA,
-    AMRWBP_AUDIO_3GPP = 0xFB,
     AVC_VIDEO   = 0xFB,
     AMR_AUDIO_3GPP = 0xFC,
     TIMED_TEXT  = 0xFD,
