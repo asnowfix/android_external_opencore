@@ -500,25 +500,14 @@ void AuthorDriver::handleSetAudioEncoder(set_audio_encoder_command *ac)
             // No sampling rate set, use the default
             mSamplingRate = 48000;
         }
-        else if (mSamplingRate != 48000)
-        {
-            LOGE("Only valid sampling rate for AAC is 48kHz.");
-            commandFailed(ac);
-            return;
-        }
         // Check the number of channels
         if (mNumberOfChannels == 0)
         {
             // Number of channels not set, use the default
             mNumberOfChannels = 2;
         }
-        else if (mNumberOfChannels != 2)
-        {
-            LOGE("Only valid number of channels for AAC is 2.");
-            commandFailed(ac);
-            return;
-        }
 #else
+        // Presently 7x30 supports only mono channel and 8kHz sample rate
         if (mSamplingRate == 0)
         {
             // No sampling rate set, use the default
