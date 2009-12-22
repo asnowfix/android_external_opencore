@@ -3010,8 +3010,9 @@ bool PVMFOMXEncNode::SetH264EncoderParameters()
     H264Type.bEnableFMO = OMX_FALSE;
     H264Type.bEnableASO = OMX_FALSE;
     H264Type.bEnableRS = OMX_FALSE;
-    H264Type.eProfile = OMX_VIDEO_AVCProfileBaseline;
-    H264Type.eLevel = OMX_VIDEO_AVCLevel1b;
+   //Component is setting level and profile correctly PV should not overwrite these values
+//  H264Type.eProfile = OMX_VIDEO_AVCProfileBaseline;
+//  H264Type.eLevel = OMX_VIDEO_AVCLevel1b;
     H264Type.bFrameMBsOnly = OMX_TRUE;
     H264Type.bMBAFF = OMX_FALSE;
     H264Type.bEntropyCodingCABAC = OMX_FALSE;
@@ -3044,7 +3045,8 @@ bool PVMFOMXEncNode::SetH264EncoderParameters()
 
     //Set the parameters now
     BitRateType.nPortIndex = iOutputPortIndex;
-    BitRateType.eControlRate = static_cast<OMX_VIDEO_CONTROLRATETYPE>(iVideoEncodeParam.iRateControlType);
+    //Temporarily disabling Rate control for 7x30
+    BitRateType.eControlRate = OMX_Video_ControlRateDisable; //static_cast<OMX_VIDEO_CONTROLRATETYPE>(iVideoEncodeParam.iRateControlType);
     BitRateType.nTargetBitrate = iVideoEncodeParam.iBitRate[0];
     Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamVideoBitrate, &BitRateType);
     if (OMX_ErrorNone != Err)
