@@ -654,6 +654,8 @@ void AuthorDriver::handleSetAudioEncoder(set_audio_encoder_command *ac)
     if (!mAudioInputMIO->setAudioFormatType(iAudioFormat))
     {
         LOGE("Compressed Audio Input not supported %s", iAudioFormat);
+        commandFailed(ac);
+        return;
     }
 
     mAudioEncoder = ac->ae;

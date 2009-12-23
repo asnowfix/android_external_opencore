@@ -26,6 +26,7 @@
 #include "oscl_dll.h"
 
 #include <media/AudioRecord.h>
+#include <media/mediarecorder.h>
 #include <sys/prctl.h>
 
 using namespace android;
@@ -717,6 +718,19 @@ bool AndroidAudioInput::setAudioFormatType(char *iAudioFormat)
   int numParams = 0;
   int32 err = 0;
 
+  // Check for the support of this Codec with the Source. If this codec cannot
+  // support other than MIC recording, return error
+  // MPEG4_AUDIO supports only MIC recording
+  if (!pv_mime_strcmp(iAudioFormat, PVMF_MIME_MPEG4_AUDIO))
+  {
+      if ((iAudioSource != AUDIO_SOURCE_DEFAULT) && (iAudioSource != AUDIO_SOURCE_MIC))
+      {
+          LOGE("Returning failure because the format type does not support this input source %d", iAudioSource);
+          return false;
+      }
+
+  }
+
   // Get supported output formats
   PVMFStatus status = getParametersSync(NULL, OUTPUT_FORMATS_CAP_QUERY, kvp, numParams, NULL);
   if (status != PVMFSuccess || numParams == 0)
@@ -737,12 +751,15 @@ bool AndroidAudioInput::setAudioFormatType(char *iAudioFormat)
     }
   }
 
+  // This means Tunnel encoder is not supported. This is not an error, just not
+  // supported. PVAuthorEngine will take care of setting up the non-tunnel
+  // encoding graph.
   if (!selectedKvp)
   {
     // Release parameters
     releaseParameters(NULL, kvp, numParams);
     kvp = NULL;
-    return false;
+    return true;
   }
 
   // Set format
