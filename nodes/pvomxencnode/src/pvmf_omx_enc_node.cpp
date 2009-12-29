@@ -5071,7 +5071,7 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
         uint8* pData = (uint8*)aBuffer->pBuffer + aBuffer->nOffset;
         uint8* pTemp;
         uint32 size = aBuffer->nFilledLen;
-        if (AVCAnnexBGetNALUnit(pData, &pTemp, (int32*)&size, true))
+        if (AVCAnnexBGetNALUnit(pData, &pTemp, (int32*)&size, false))
         {
             iFirstNALStartCodeSize = (uint32)pTemp - (uint32)pData;
         }
@@ -5079,6 +5079,7 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
         {
             iFirstNALStartCodeSize = 0;
         }
+        nal_size = size;
     }
 
     /* the case in which a buffer simply containing a start code is sent */
