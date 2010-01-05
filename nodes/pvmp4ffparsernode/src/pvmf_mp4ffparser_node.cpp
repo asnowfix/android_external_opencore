@@ -3339,7 +3339,7 @@ PVMFStatus PVMFMP4FFParserNode::DoSetDataSourcePosition(PVMFMP4FFParserNodeComma
     {
         // Convert to milliseconds
         MediaClockConverter mcc(timescale);
-        mcc.update_clock(duration);
+        mcc.set_clock(duration, 0);
         durationms = mcc.get_converted_ts(1000);
     }
     if ((targetNPT >= durationms) && (PVMF_DATA_SOURCE_DIRECTION_REVERSE != iPlayBackDirection))
@@ -3776,7 +3776,7 @@ PVMFStatus PVMFMP4FFParserNode::DoQueryDataSourcePosition(PVMFMP4FFParserNodeCom
     {
         // Convert to milliseconds
         MediaClockConverter mcc(timescale);
-        mcc.update_clock(duration);
+        mcc.set_clock(duration, 0);
         durationms = mcc.get_converted_ts(1000);
     }
     if (targetNPT >= durationms)
