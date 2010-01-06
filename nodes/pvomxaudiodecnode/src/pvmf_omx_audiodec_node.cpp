@@ -1875,8 +1875,10 @@ bool PVMFOMXAudioDecNode::InitDecoder(PVMFSharedMediaDataPtr& DataIn)
     }
     else if (((PVMFOMXDecPort*)iInPort)->iFormat ==  PVMF_MIME_MPEG4_AUDIO ||
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_3640 ||
+#ifndef USE_HW_AAC_DEC
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_ADIF ||
-             ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_ASF_MPEG4_AUDIO ||
+#endif
+           ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_ASF_MPEG4_AUDIO ||
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AAC_SIZEHDR) // for testing
     {
         // get format specific info and send it as config data:
@@ -1896,6 +1898,9 @@ bool PVMFOMXAudioDecNode::InitDecoder(PVMFSharedMediaDataPtr& DataIn)
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWB ||
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_AMRWBP_IETF ||
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_MP3 ||
+#ifdef USE_HW_AAC_DEC
+             ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_ADIF ||
+#endif
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_QCELP ||
              ((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_EVRC)
     {

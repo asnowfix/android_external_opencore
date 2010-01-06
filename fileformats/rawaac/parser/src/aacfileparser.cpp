@@ -1750,7 +1750,11 @@ OSCL_EXPORT_REF bool CAACFileParser::InitAACFile(OSCL_wString& aClip,  bool aIni
             mcc.set_timescale(iAACBitRate);
             mcc.set_clock(raw_data_bits, 0);
             iAACDuration = mcc.get_converted_ts(1000);
-
+#ifdef USE_HW_AAC_DEC
+            // Reset the position to file beginning to fill the first input buffer
+            // along with ADIF header
+            iAACHeaderLen = 0;
+#endif
             if (ipBSO->reset(ipBSO->GetByteOffsetToStartOfAudioFrames() + (iAACHeaderLen >> 3)))
                 return false;
         }
@@ -2159,7 +2163,7 @@ CAACFileParser::GetNextBundledAccessUnits(uint32 *aNumSamples,
                 // Check whether the gau buffer will be overflow or the requested number
                 // of samples will be met
                 if (bytesReadInGau + frame_size >= gauBufferSize ||
-                        numSamplesRead + numBlocks > *aNumSamples)
+                        numSamplesRead + 1 > *aNumSamples)
                     break;
 
                 // At this point, we can get the next frame
@@ -2177,7 +2181,7 @@ CAACFileParser::GetNextBundledAccessUnits(uint32 *aNumSamples,
                     bytesReadInGau += frame_size;
                     aGau->info[i].len = frame_size + hdrSize;
                     aGau->info[i].ts  = (int32)(((OsclFloat)(iTotalNumFramesRead++) * 1024000.0) / (OsclFloat)iAACSampleFrequency); // BX
-                    numSamplesRead += numBlocks;
+                    numSamplesRead ++;
                 }
                 else
                 { // error happens!!

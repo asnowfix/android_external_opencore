@@ -10,7 +10,9 @@ LOCAL_MODULE := libpvomxaudiodecnode
 
 LOCAL_CFLAGS :=  $(PV_CFLAGS)
 
-
+ifeq ($(TARGET_BOARD_PLATFORM),msm7k)
+    LOCAL_CFLAGS += -DUSE_HW_AAC_DEC
+endif
 
 LOCAL_STATIC_LIBRARIES := 
 
