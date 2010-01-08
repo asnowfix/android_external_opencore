@@ -102,8 +102,8 @@ Mpeg4File::Mpeg4File(MP4_FF_FILE *fp,
 
     _success = true; // Initial state
 
-    int32 fileSize;
-    int32 filePointer;
+    uint32 fileSize;
+    uint32 filePointer;
     filePointer = AtomUtils::getCurrentFilePosition(fp);
     uint32 fsize = 0;
     AtomUtils::getCurrentFileSize(fp, fsize);
@@ -114,7 +114,7 @@ Mpeg4File::Mpeg4File(MP4_FF_FILE *fp,
     _commonFilePtr = NULL;
     _fileSize = fsize;
 
-    int32 count = fileSize - filePointer;// -DEFAULT_ATOM_SIZE;
+    uint32 count = fileSize - filePointer;// -DEFAULT_ATOM_SIZE;
 
     //top level moov, mdat, udat
     while (count > 0)

@@ -525,7 +525,7 @@ AtomUtils::getNextAtomType(MP4_FF_FILE *fp, uint32 &size, uint32 &type)
     size = 0;
     type = UNKNOWN_ATOM;
 
-    int32 filePointer;
+    uint32 filePointer;
     filePointer = AtomUtils::getCurrentFilePosition(fp);
 
     if (filePointer > (fp->_fileSize - 8))
