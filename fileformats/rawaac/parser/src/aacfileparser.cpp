@@ -1753,10 +1753,12 @@ OSCL_EXPORT_REF bool CAACFileParser::InitAACFile(OSCL_wString& aClip,  bool aIni
 #ifdef USE_HW_AAC_DEC
             // Reset the position to file beginning to fill the first input buffer
             // along with ADIF header
-            iAACHeaderLen = 0;
-#endif
+            if (ipBSO->reset(ipBSO->GetByteOffsetToStartOfAudioFrames()))
+                return false;
+#else
             if (ipBSO->reset(ipBSO->GetByteOffsetToStartOfAudioFrames() + (iAACHeaderLen >> 3)))
                 return false;
+#endif
         }
         else if (iAACFormat == EAACRaw)
         {
@@ -1974,7 +1976,13 @@ OSCL_EXPORT_REF int32 CAACFileParser::ResetPlayback(uint32 aStartTime, uint32& a
     else if (iAACFormat == EAACADIF)
     {
         int32 newPosition = (iAACHeaderLen >> 3);
-
+#ifdef USE_HW_AAC_DEC
+        /* Do not skip ADIF header for the first time */
+        if(iFirstTime)
+        {
+            newPosition = 0;
+        }
+#endif
         if (newPosition >= 0 && ipBSO->reset(ipBSO->GetByteOffsetToStartOfAudioFrames() + newPosition))
         {
             PVMF_AACPARSER_LOGERROR((0, "CAACFileParser::ResetPlayback- Misc error-"));
