@@ -81,6 +81,7 @@ SampleTableAtom::SampleTableAtom(MP4_FF_FILE *fp,
     _pinput   = NULL;
     _commonFilePtr = NULL;
     _currChunkOffset = 0;
+    _numReadKeyFrames = 0;
 
     _defaultMimeType += _STRLIT_WCHAR("UNKNOWN");
 
@@ -2643,6 +2644,8 @@ SampleTableAtom::getNextNSamples(uint32 startSampleNum,
 
             currTSBase += tsDelta;
 
+            if(IsSyncSample(j))
+                _numReadKeyFrames++;
 
             PVMF_MP4FFPARSER_LOGMEDIASAMPELSTATEVARIABLES((0, "SampleTableAtom::getNextNSamples- pgau->info[%d].sample_info =%d", s, pgau->info[s].sample_info));
             PVMF_MP4FFPARSER_LOGMEDIASAMPELSTATEVARIABLES((0, "SampleTableAtom::getNextNSamples- pgau->info[%d].ts_delta =%d", s, pgau->info[s].ts_delta));

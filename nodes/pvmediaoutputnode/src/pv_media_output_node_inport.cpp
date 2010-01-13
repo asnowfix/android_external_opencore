@@ -32,6 +32,13 @@
 #include "latmpayloadparser.h"
 #include "media_clock_converter.h"
 #include "time_comparison_utils.h"
+#include "oscl_time.h"
+
+#include <cutils/properties.h>
+
+#undef LOG_TAG
+#define LOG_TAG "PVMediaOutputNodePort"
+#include <utils/Log.h>
 
 #define LOGDATAPATH(x)  PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iDatapathLogger, PVLOGMSG_INFO, x);
 
@@ -169,6 +176,12 @@ PVMediaOutputNodePort::PVMediaOutputNodePort(PVMediaOutputNode* aNode)
     iDatapathLoggerIn = PVLogger::GetLoggerObject("datapath.sinknode.in");
     iDatapathLoggerOut = PVLogger::GetLoggerObject("datapath.sinknode.out");
     iReposLogger = PVLogger::GetLoggerObject("pvplayerrepos.mionode");
+
+    //Statistics profiling
+    char value[PROPERTY_VALUE_MAX];
+    mStatistics = false;
+    property_get("persist.debug.pv.statistics", value, "0");
+    if(atoi(value)) mStatistics = true;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -2556,6 +2569,9 @@ void PVMediaOutputNodePort::SetSkipTimeStamp(uint32 aSkipTS,
     PVMF_MOPORT_LOGDATAPATH((0, "PVMediaOutputNodePort::SetSkipTimeStamp: TS=%d, Fmt=%s",
                              aSkipTS,
                              iSinkFormatString.get_str()));
+    //Seek profiling start
+    if(mStatistics) SeekProfilingStart();
+
     iSkipTimestamp = aSkipTS;
     iRecentStreamID = aStreamID;
     iSendStartOfDataEvent = true;
@@ -2670,6 +2686,10 @@ bool PVMediaOutputNodePort::DataToSkip(PVMFSharedMediaMsgPtr& aMsg)
             }
         }
     }
+
+    //Seek profiling end
+    if(mStatistics) SeekProfilingEnd();
+
     return false;
 }
 
@@ -2871,4 +2891,27 @@ int32 PVMediaOutputNodePort::WriteDataToMIO(int32 &aCmdId, PvmiMediaXferHeader &
                                                         aMediaxferhdr,
                                                         (OsclAny*) & iWriteAsyncContext););
     return leavecode;
+}
+
+void PVMediaOutputNodePort::SeekProfilingStart()
+{
+    TimeValue currentTime;
+    iLatencyProfiling = true;
+    currentTime.set_to_current_time();
+    iStartMilliSecProfiling = currentTime.to_msec();
+}
+
+void PVMediaOutputNodePort::SeekProfilingEnd()
+{
+    TimeValue currentTime;
+    currentTime.set_to_current_time();
+    iEndMilliSecProfiling = currentTime.to_msec();
+
+    if(iLatencyProfiling && iRecentStreamID){
+        LOGE("======================================================");
+        LOGE("PVMediaOutputNodePort: Fmt = %s, seek latency = %d", iSinkFormatString.get_str()
+                                                                 , iEndMilliSecProfiling - iStartMilliSecProfiling);
+        LOGE("======================================================");
+        iLatencyProfiling = false;
+    }
 }

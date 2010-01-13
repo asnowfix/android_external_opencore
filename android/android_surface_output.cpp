@@ -36,6 +36,8 @@ OSCL_DLL_ENTRY_POINT_DEFAULT()
 //The factory functions.
 #include "oscl_mem.h"
 
+#include <cutils/properties.h>
+
 using namespace android;
 
 OSCL_EXPORT_REF AndroidSurfaceOutput::AndroidSurfaceOutput() :
@@ -48,6 +50,14 @@ OSCL_EXPORT_REF AndroidSurfaceOutput::AndroidSurfaceOutput() :
     mPvPlayer = NULL;
     mEmulation = false;
     iEosReceived = false;
+
+    //Statistics profiling
+    char value[PROPERTY_VALUE_MAX];
+    mStatistics = false;
+    iFirstFrameLatency = true;
+    iFirstFrameLatencyStart = 0;
+    property_get("persist.debug.pv.statistics", value, "0");
+    if(atoi(value)) mStatistics = true;
 }
 
 status_t AndroidSurfaceOutput::set(PVPlayer* pvPlayer, const sp<ISurface>& surface, bool emulation)
@@ -636,6 +646,8 @@ PVMFCommandId AndroidSurfaceOutput::writeAsync(uint8 aFormatType, int32 aFormatI
                 // Call playback to send data to IVA for Color Convert
                 status = writeFrameBuf(aData, aDataLen, data_header_info);
 
+                if (mStatistics && iFirstFrameLatency) FirstFrameLatency();
+
                 PVLOGGER_LOGMSG(PVLOGMSG_INST_REL, iLogger, PVLOGMSG_ERR,
                    (0,"AndroidSurfaceOutput::writeAsync: Playback Progress - frame %d",iFrameNumber++));
             }
@@ -1041,4 +1053,12 @@ OSCL_EXPORT_REF bool AndroidSurfaceOutput::GetVideoSize(int *w, int *h) {
     *w = iVideoDisplayWidth;
     *h = iVideoDisplayHeight;
     return iVideoDisplayWidth != 0 && iVideoDisplayHeight != 0;
+}
+
+OSCL_EXPORT_REF void AndroidSurfaceOutput::FirstFrameLatency()
+{
+    LOGE("================================================================");
+    LOGE("AndroidSurfaceOutput First Frame Latency = %d", (int32)((systemTime(SYSTEM_TIME_MONOTONIC) - iFirstFrameLatencyStart) / (ms2ns(1))));
+    LOGE("================================================================");
+    iFirstFrameLatency = false;
 }

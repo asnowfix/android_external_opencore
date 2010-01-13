@@ -76,6 +76,13 @@
 
 #include "oscl_exclusive_ptr.h"
 
+#include <cutils/properties.h>
+
+#undef LOG_TAG
+#define LOG_TAG "PVMFMP4FFParserNode"
+#include <utils/Log.h>
+
+
 #define PVMF_MP4_MIME_FORMAT_AUDIO_UNKNOWN  "x-pvmf/audio/unknown"
 #define PVMF_MP4_MIME_FORMAT_VIDEO_UNKNOWN  "x-pvmf/video/unknown"
 #define PVMF_MP4_MIME_FORMAT_UNKNOWN        "x-pvmf/unknown-media/unknown"
@@ -249,6 +256,13 @@ PVMFMP4FFParserNode::PVMFMP4FFParserNode(int32 aPriority) :
         OSCL_CLEANUP_BASE_CLASS(OsclTimerObject);
         OSCL_LEAVE(err);
     }
+
+    //Statistics profiling
+    char value[PROPERTY_VALUE_MAX];
+    mStatistics = false;
+    property_get("persist.debug.pv.statistics", value, "0");
+    if(atoi(value)) mStatistics = true;
+    iNumCorruptSamples = 0;
 }
 
 
@@ -4046,6 +4060,7 @@ void PVMFMP4FFParserNode::HandleTrackState()
                     }
                     if (iNodeTrackPortList[i].iState == PVMP4FFNodeTrackPortInfo::TRACKSTATE_SKIP_CORRUPT_SAMPLE)
                     {
+                        if(mStatistics) iNumCorruptSamples++;
                         iNodeTrackPortList[i].iState = PVMP4FFNodeTrackPortInfo::TRACKSTATE_TRANSMITTING_GETDATA;
                         RunIfNotReady();
                     }
@@ -8309,7 +8324,7 @@ void PVMFMP4FFParserNode::LogDiagnostics()
                 PVMF_MP4FFPARSERNODE_LOGDIAGNOSTICS((0, "PVMFMP4FFParserNode - Read Media Sample Avg Time  =%2d", avg_time));
                 PVMF_MP4FFPARSERNODE_LOGDIAGNOSTICS((0, "PVMFMP4FFParserNode - Number of Sample Read each time  =%d", it->iNumSamples));
 
-
+                if(mStatistics) MediaStatistics(it);
             }
         }
     }
@@ -9169,16 +9184,22 @@ int32 PVMFMP4FFParserNode::CreateErrorInfoMsg(PVMFBasicErrorInfoMessage** aError
     return leavecode;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+void PVMFMP4FFParserNode::MediaStatistics(Oscl_Vector<PVMP4FFNodeTrackPortInfo, OsclMemAllocator>::iterator statsit)
+{
+    uint32 mov_duration = 0;
+    MediaClockConverter mcc(iMP4FileHandle->getMovieTimescale());
+    mov_duration = Oscl_Int64_Utils::get_uint64_lower32(iMP4FileHandle->getMovieDuration());
+    mcc.update_clock(mov_duration);
+    MediaClockConverter mcc2(iMP4FileHandle->getTrackMediaTimescale(statsit->iTrackId));
+    uint32 trk_duration = 0;
+    trk_duration = Oscl_Int64_Utils::get_uint64_lower32(iMP4FileHandle->getTrackMediaDuration(statsit->iTrackId));
+    mcc2.update_clock(trk_duration);
+    LOGE("=================================================================");
+    LOGE("PVMFMP4FFParserNode: Track name = %s",statsit->iMimeType.get_cstr());
+    LOGE("PVMFMP4FFParserNode: Read Media Sample Number of Times = %d", statsit->iNumTimesMediaSampleRead);
+    LOGE("PVMFMP4FFParserNode: Read Media Key Samples Read = %d", iMP4FileHandle->getNumReadKeyFrames(statsit->iTrackId));
+    LOGE("PVMFMP4FFParserNode: Read Corrupt Media Samples Number = %d", iNumCorruptSamples);
+    LOGE("PVMFMP4FFParserNode: Movie Duration = %u", mcc.get_converted_ts(1000));
+    LOGE("PVMFMP4FFParserNode: Track Duration = %u", mcc2.get_converted_ts(1000));
+    LOGE("=================================================================");
+}

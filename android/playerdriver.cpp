@@ -314,6 +314,12 @@ class PlayerDriver :
 
     // video display surface
     android::sp<android::ISurface> mSurface;
+
+    //Statistics
+    void SeekPosition(PVPPlaybackPosition seekpvpppos);
+    void PausePosition();
+    bool                    mStatistics;
+    nsecs_t                 iFFLS; //First Frame Latency start
 };
 
 PlayerDriver::PlayerDriver(PVPlayer* pvPlayer) :
@@ -370,6 +376,13 @@ PlayerDriver::PlayerDriver(PVPlayer* pvPlayer) :
 
     // mSyncSem will be signaled when the scheduler has started
     mSyncSem->Wait();
+
+    // Statistics profiling
+    mStatistics = false;
+    property_get("persist.debug.pv.statistics", value, "0");
+    if(atoi(value)) mStatistics = true;
+
+    if(mStatistics) iFFLS = systemTime(SYSTEM_TIME_MONOTONIC);
 }
 
 PlayerDriver::~PlayerDriver()
@@ -795,6 +808,7 @@ void PlayerDriver::handleSetVideoSurface(PlayerSetVideoSurface* command)
             return;
         }
         mVideoOutputMIO = mio;
+        if(mStatistics) mVideoOutputMIO->iFirstFrameLatencyStart = iFFLS;
 
         mVideoNode = PVMediaOutputNodeFactory::CreateMediaOutputNode(mVideoOutputMIO);
         mVideoSink = new PVPlayerDataSinkPVMFNode;
@@ -929,9 +943,9 @@ void PlayerDriver::handleSeek(PlayerSeek* command)
     begin.iMode = PVPPBPOS_MODE_NOW;
     end.iIndeterminate = true;
     mSeekPending = true;
+    if(mStatistics) PlayerDriver::SeekPosition(begin);
     OSCL_TRY(error, mPlayer->SetPlaybackRange(begin, end, false, command));
     OSCL_FIRST_CATCH_ANY(error, commandFailed(command));
-
     mEndOfData = false;
 }
 
@@ -1021,6 +1035,7 @@ void PlayerDriver::handlePause(PlayerPause* command)
     int error = 0;
     OSCL_TRY(error, mPlayer->Pause(command));
     OSCL_FIRST_CATCH_ANY(error, commandFailed(command));
+    if(mStatistics) PlayerDriver::PausePosition();
 }
 
 void PlayerDriver::handleRemoveDataSource(PlayerRemoveDataSource* command)
@@ -1818,3 +1833,20 @@ status_t PVPlayer::getMetadata(const media::Metadata::Filter& ids,
 }
 
 } // namespace android
+
+void PlayerDriver::SeekPosition(PVPPlaybackPosition seekpvpppos)
+{
+    LOGE("=====================================");
+    LOGE("PlayerDriver: Seek position = %d", seekpvpppos.iPosValue.millisec_value);
+    LOGE("=====================================");
+}
+
+void PlayerDriver::PausePosition()
+{
+    PVPPlaybackPosition profiling;
+    profiling.iPosUnit = PVPPBPOSUNIT_MILLISEC;
+    mPlayer->GetCurrentPositionSync(profiling);
+    LOGE("========================================");
+    LOGE("PlayerDriver Pause position = %d", profiling.iPosValue.millisec_value);
+    LOGE("========================================");
+}

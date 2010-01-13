@@ -28,6 +28,12 @@
 #include "pvmf_basic_errorinfomessage.h"
 #include "pv_media_output_node_events.h"
 
+#include <cutils/properties.h>
+
+#undef LOG_TAG
+#define LOG_TAG "PVMediaOutputNode"
+#include <utils/Log.h>
+
 // Define entry point for this DLL
 OSCL_DLL_ENTRY_POINT_DEFAULT()
 
@@ -719,6 +725,11 @@ PVMediaOutputNode::PVMediaOutputNode()
         , iReposLogger(NULL)
         , iRecentBOSStreamID(0)
 {
+    //Statistics profiling
+    char value[PROPERTY_VALUE_MAX];
+    mStatistics = false;
+    property_get("persist.debug.pv.statistics", value, "0");
+    if(atoi(value)) mStatistics = true;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1937,10 +1948,20 @@ void PVMediaOutputNode::LogDiagnostics()
         {
             LOGDIAGNOSTICS((0, "PVMediaOutputNode:LogDiagnostics Mime %s, FramesDropped/TotalFrames %d/%d"
                             , iSinkFormatString.get_str(), iInPortVector[0]->iFramesDropped, iInPortVector[0]->iTotalFrames));
+
+            if(mStatistics) FramesDroppedProfiling();
         }
     }
 }
 
+void PVMediaOutputNode::FramesDroppedProfiling()
+{
+    LOGE("==========================================");
+    LOGE("PVMediaOutputNode: Mime = %s", iSinkFormatString.get_str());
+    LOGE("PVMediaOutputNode: FramesDropped = %d", iInPortVector[0]->iFramesDropped);
+    LOGE("PVMediaOutputNode: TotalFrames = %d", iInPortVector[0]->iTotalFrames);
+    LOGE("==========================================");
+}
 
 
 

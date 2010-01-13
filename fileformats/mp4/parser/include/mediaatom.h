@@ -766,6 +766,19 @@ class MediaAtom : public Atom
         MediaInformationAtom *_pmediaInformation;
 
         uint32 _trackStartOffset;
+
+    public:
+        uint32 getNumReadKeyFrames()
+        {
+            if (_pmediaInformation != NULL)
+            {
+                return (_pmediaInformation->getNumReadKeyFrames());
+            }
+            else
+            {
+                return 0;
+            }
+        }
 };
 
 #endif // MEDIAATOM_H_INCLUDED

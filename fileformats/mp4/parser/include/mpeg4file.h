@@ -1307,6 +1307,18 @@ class Mpeg4File : public IMpeg4File, public Parentable
         void DestroyDataStreamForExternalDownload();
 
 
+        uint32 getNumReadKeyFrames(uint32 trackid)
+        {
+            if (_pmovieAtom != NULL)
+            {
+                return _pmovieAtom->getNumReadKeyFrames(trackid);
+            }
+	    else
+            {
+		return 0;
+            }
+	}
+
     private:
         void ReserveMemoryForLangCodeVector(Oscl_Vector<uint16, OsclMemAllocator> &iLangCode, int32 capacity, int32 &leavecode);
         void ReserveMemoryForValuesVector(Oscl_Vector<OSCL_wHeapString<OsclMemAllocator>, OsclMemAllocator> &iValues, int32 capacity, int32 &leavecode);

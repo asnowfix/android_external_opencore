@@ -710,6 +710,19 @@ class MediaInformationAtom : public Atom
 
         uint32 _trackStartOffset;
 
+    public:
+        uint32 getNumReadKeyFrames()
+        {
+            if (_psampleTableAtom != NULL)
+            {
+                return (_psampleTableAtom->getNumReadKeyFrames());
+            }
+            else
+            {
+                return 0;
+            }
+
+        }
 };
 
 #endif // MEDIAINFORMATIONATOM_H_INCLUDED

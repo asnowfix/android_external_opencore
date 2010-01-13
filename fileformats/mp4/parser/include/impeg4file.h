@@ -493,6 +493,8 @@ class IMpeg4File : public ISucceedFail
         virtual PVMFStatus getRating(uint32 index, OSCL_wString& aVal, uint16& aLangCode, MP4FFParserOriginalCharEnc& aCharEncType) = 0;
 
 
+        virtual uint32 getNumReadKeyFrames(uint32 trackid) = 0;
+
 };
 
 #endif // IMPEG4FILE_H_INCLUDED

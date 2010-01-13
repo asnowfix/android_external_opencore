@@ -819,6 +819,19 @@ class TrackAtom : public Atom
         int32  _pMediaType;
 
         OMADRMKMSBox* _pOMADRMKMSBox;
+
+    public:
+        uint32 getNumReadKeyFrames()
+        {
+            if (_pmediaAtom != NULL)
+            {
+                return _pmediaAtom->getNumReadKeyFrames();
+            }
+            else
+            {
+                return 0;
+            }
+	    }
 };
 
 #endif // TRACKATOM_H_INCLUDED

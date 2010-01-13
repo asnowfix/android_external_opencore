@@ -608,11 +608,17 @@ class SampleTableAtom : public Atom
             return _numEVRCFramesPerSample;
         }
 
+        uint32 getNumReadKeyFrames()
+        {
+            return _numReadKeyFrames;
+        }
+
     private:
         int32 _numQCELPFramesPerSample;
         int32 _numEVRCFramesPerSample;
         ChunkLargeOffsetAtom  *_pchunkLargeOffsetAtom;
         uint32 chunk_large_offset_exists;
+        int32 _numReadKeyFrames;
 };
 
 #endif // SAMPLETABLEATOM_H_INCLUDED

@@ -800,7 +800,20 @@ class MovieAtom : public Atom
 
         OSCL_wHeapString<OsclMemAllocator> _emptyString;
 
+    public:
+        uint32 getNumReadKeyFrames(uint32 trackid)
+        {
+            TrackAtom *track = getTrackForID(trackid);
 
+            if (track != NULL)
+            {
+                return track->getNumReadKeyFrames();
+            }
+            else
+            {
+                return 0;
+            }
+        }
 };
 
 #endif // MOVIEATOM_H_INCLUDED
