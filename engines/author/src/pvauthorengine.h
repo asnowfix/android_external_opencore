@@ -281,7 +281,7 @@ class PVAuthorEngine : public PVAuthorEngineInterface,
         /**
          * Check if the specified format is supported
          */
-        PVMFStatus IsCompressedFormatDataSource(PVAENodeContainer* aDataSrc, bool& aIsCompressedFormat);
+        PVMFStatus IsCompressedFormatDataSource(PVAENodeContainer* aDataSrc, bool& aIsCompressedFormat,PvmfMimeString& aMimeType);
 
         /**
          * Resets the graph.  All nodes will be disconnected.
