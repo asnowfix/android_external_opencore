@@ -504,7 +504,11 @@ void AuthorDriver::handleSetAudioEncoder(set_audio_encoder_command *ac)
         if (mNumberOfChannels == 0)
         {
             // Number of channels not set, use the default
+#ifdef SURF8K
+            mNumberOfChannels = 1;
+#else
             mNumberOfChannels = 2;
+#endif
         }
 #else
         // Presently 7x30 supports only mono channel and 8kHz sample rate
