@@ -753,7 +753,12 @@ PVMFStatus PVMFOMXEncPort::NegotiateInputSettings(PvmiCapabilityAndConfig* aConf
         for (it = iOMXNode->iCapability.iInputFormatCapability.begin(); it != iOMXNode->iCapability.iInputFormatCapability.end(); it++)
         {
             // Is the format on the input list?
-            if (pv_mime_strcmp(kvp->value.pChar_value, it->getMIMEStrPtr()) == 0)
+            // If Multiple format types is supported by MIO (Compressed input
+            // MIO), and one of the compressed format is not supported, then it
+            // need to use software encoder. This check will ensure that the
+            // correct format type is picked up. Otherwise it will result in
+            // unsupported format error.
+            if (pv_mime_strcmp(kvp[i].value.pChar_value, it->getMIMEStrPtr()) == 0)
             {
                 // Found.  Is it audio or video?
                 if (it->isAudio())
