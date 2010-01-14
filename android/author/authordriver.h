@@ -81,7 +81,7 @@ static const int32 DEFAULT_VIDEO_WIDTH       = 176;
 static const int32 DEFAULT_VIDEO_HEIGHT      = 144;
 
 static const int32 MIN_VIDEO_BITRATE_SETTING = 192000;
-static const int32 MAX_VIDEO_BITRATE_SETTING = 420000;
+static const int32 MAX_VIDEO_BITRATE_SETTING = 6000000;
 static const int32 MAX_AUDIO_BITRATE_SETTING = 320000; // Max bitrate??
 static const int32 MIN_AUDIO_BITRATE_SETTING = 1;      // Min bitrate??
 static const int32 DEFAULT_AUDIO_BITRATE_SETTING = 64000; // Default for all the other audio
