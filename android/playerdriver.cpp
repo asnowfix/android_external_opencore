@@ -1166,7 +1166,7 @@ int PlayerDriver::playerThread()
 
     OMX_MasterDeinit();
     UninitializeForThread();
-    return 0;
+    return error;
 }
 
 /*static*/ void PlayerDriver::syncCompletion(status_t s, void *cookie, bool cancelled)
