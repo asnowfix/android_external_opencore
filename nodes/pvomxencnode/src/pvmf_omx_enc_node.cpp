@@ -32,6 +32,7 @@
 #include "OMX_Core.h"
 #include "pvmf_omx_enc_callbacks.h"     //used for thin AO in encoder's callbacks
 #include "pv_omxcore.h"
+#include <cutils/properties.h>
 
 #define CONFIG_SIZE_AND_VERSION(param)                  \
     param.nSize=sizeof(param);                          \
@@ -2543,6 +2544,12 @@ bool PVMFOMXEncNode::SetMP4EncoderParameters()
     Mpeg4Type.nHeaderExtension = 0;
     Mpeg4Type.bReversibleVLC = ((iVideoEncodeParam.iRVLCEnable == true) ? OMX_TRUE : OMX_FALSE);
 
+    // workaround for 7x30 do not set profile and level :
+    // This is to prevent overwriting profile/level value set by the component
+    char value[PROPERTY_VALUE_MAX];
+    property_get("ro.product.device", value, "0");
+    if (strcmp("msm7630_surf", value) != 0)
+    {
     switch (iVideoEncodeParam.iProfileLevel)
     {
 
@@ -2605,8 +2612,8 @@ bool PVMFOMXEncNode::SetMP4EncoderParameters()
             Mpeg4Type.eProfile = OMX_VIDEO_MPEG4ProfileCoreScalable;
             Mpeg4Type.eLevel = OMX_VIDEO_MPEG4Level3;
             break;
-
     }
+    } // end workaround for 7x30
 
     Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamVideoMpeg4, &Mpeg4Type);
     if (OMX_ErrorNone != Err)
@@ -2801,11 +2808,6 @@ bool PVMFOMXEncNode::SetH263EncoderParameters()
     H263Type.nBFrames = 0;
     H263Type.eProfile = OMX_VIDEO_H263ProfileBaseline;
 
-    // the supported level is up to OMX_VIDEO_H263Level45
-    if (H263Type.eLevel > OMX_VIDEO_H263Level45)
-    {
-        H263Type.eLevel = OMX_VIDEO_H263Level45;
-    }
     H263Type.bPLUSPTYPEAllowed = OMX_FALSE;
     H263Type.bForceRoundingTypeToZero = OMX_FALSE;
     H263Type.nPictureHeaderRepetition = 0;
