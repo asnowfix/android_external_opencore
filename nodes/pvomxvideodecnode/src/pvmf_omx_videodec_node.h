@@ -130,7 +130,7 @@ class PVMFOMXVideoDecNode
         : public PVMFOMXBaseDecNode
 {
     public:
-        PVMFOMXVideoDecNode(int32 aPriority);
+        PVMFOMXVideoDecNode(int32 aPriority, bool aHwAccelerated);
         ~PVMFOMXVideoDecNode();
 
         // From PVMFNodeInterface

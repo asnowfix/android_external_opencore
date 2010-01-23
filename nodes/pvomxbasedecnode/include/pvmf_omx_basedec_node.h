@@ -363,7 +363,7 @@ class PVMFOMXBaseDecNode
 
 {
     public:
-        OSCL_IMPORT_REF PVMFOMXBaseDecNode(int32 aPriority, const char aAOName[]);
+        OSCL_IMPORT_REF PVMFOMXBaseDecNode(int32 aPriority, const char aAOName[], bool aHwAccelerated = true);
         OSCL_IMPORT_REF virtual ~PVMFOMXBaseDecNode();
 
         // From PVMFNodeInterface
@@ -836,6 +836,7 @@ class PVMFOMXBaseDecNode
         // Also store the timestamp in a vector. This will help us to
         // validate if the input sample was properly decoded.
         Oscl_Vector<uint32, OsclMemAllocator> iTimestampVec;
+        OMX_BOOL bHWAccelerated;
 };
 
 

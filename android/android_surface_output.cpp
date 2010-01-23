@@ -941,7 +941,7 @@ void AndroidSurfaceOutput::Run()
         processWriteResponseQueue(0);
         iEosReceived = false;
     } else {
-        processWriteResponseQueue(1);
+        processWriteResponseQueue(2);
     }
 }
 
