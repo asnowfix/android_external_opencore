@@ -41,6 +41,10 @@
         param.nVersion.s.nStep = SPECSTEP;
 
 #define PVOMXBASEDEC_MEDIADATA_CHUNKSIZE 128
+
+// minimum buffer size required to decode LATM streaming packets
+#define LATM_MIN_BUFFER_LEN 1550
+
 #if 0
 #include <utils/Log.h>
 #undef LOG_TAG
@@ -2632,8 +2636,17 @@ OSCL_EXPORT_REF bool PVMFOMXBaseDecNode::SendInputBufferToOMXComponent()
                 // if all the fragments have been exhausted, and this is the last piece
                 // of the (possibly broken up) last fragment
 
+                if ((!iOMXComponentSupportsPartialFrames) &&
+                        (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_LATM) &&
+                        (input_buf->pBufHdr->nFilledLen < LATM_MIN_BUFFER_LEN))
+                {
+                    PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
+                        (0, "Buffering for LATM Streaming. nAllocLen=%d nFilledLen=%d",
+                            input_buf->pBufHdr->nAllocLen,
+                            input_buf->pBufHdr->nFilledLen));
+                }
                 // use the marker bit from the end of message
-                if (iCurrentMsgMarkerBit)
+                else if (iCurrentMsgMarkerBit)
                 {
                     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
                                     (0, "%s::SendInputBufferToOMXComponent() - END OF MESSAGE - Buffer 0x%x MARKER bit set to 1, TS=%d, Ticks=%L", iName.Str(), input_buf->pBufHdr->pBuffer, iInTimestamp, iOMXTicksTimestamp));
