@@ -4024,11 +4024,24 @@ bool PVMFOMXEncNode::SendInputBufferToOMXComponent()
             // can the remaining fragment fit into the buffer?
             if (iFragmentSizeRemainingToCopy <= (input_buf->pBufHdr->nAllocLen))
             {
-
+             if (iOMXComponentSupportsExternalInputBufferAlloc)
+             {//TODO: check whether addRef() is needed for fsi
+                OsclRefCounterMemFrag fsifrag;
+                iDataIn->getFormatSpecificInfo(fsifrag);
+                if(sizeof(OsclAny*) != fsifrag.getMemFrag().len )
+                {
+                    PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
+                            (0, "PVMFOMXEncNode-%s::SendInputBufferToOMXComponent() - ERROR buffer size %d", iNodeTypeId, fsifrag.getMemFrag().len ));
+                    return false;
+                }
+                oscl_memcpy(&(input_buf->pBufHdr->pPlatformPrivate), fsifrag.getMemFragPtr(), sizeof(OsclAny*) ); // restore ptr data from fsi
+            }
+            else
+            {
                 oscl_memcpy(input_buf->pBufHdr->pBuffer,
                             (void *)((uint8 *)frag.getMemFragPtr() + iCopyPosition),
                             iFragmentSizeRemainingToCopy);
-
+            }
                 input_buf->pBufHdr->nFilledLen = iFragmentSizeRemainingToCopy;
 
                 PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
