@@ -689,8 +689,9 @@ OSCL_EXPORT_REF void PVMediaOutputNode::RequestCompleted(const PVMFCmdResp& aRes
 
 OSCL_EXPORT_REF void PVMediaOutputNode::ReportErrorEvent(PVMFEventType aEventType, PVInterface* aExtMsg)
 {
-    OSCL_UNUSED_ARG(aEventType);
-    OSCL_UNUSED_ARG(aExtMsg);
+   //Mapping errors from MIO control interface to the node.
+   if(aEventType == PVMFErrResourceConfiguration)
+    ReportErrorEvent(aEventType, NULL, PVMFMoutNodeErr_MediaIOConnect);
 }
 OSCL_EXPORT_REF void PVMediaOutputNode::ReportInfoEvent(PVMFEventType aEventType, PVInterface* aExtMsg)
 {

@@ -111,9 +111,12 @@ OSCL_EXPORT_REF PV_Wav_Parser::~PV_Wav_Parser()
 PVWavParserReturnCode PV_Wav_Parser::ReadData(uint8* buff, uint32 size, uint32& bytesread)
 {
     OSCL_ASSERT(ipWAVFile != NULL);
+    uint32 error=PVWAVPARSER_OK;
 
     // read data
-    if ((bytesread = ipWAVFile->Read(buff, 1, size)) == 0)
+    OSCL_TRY(error,(bytesread=ipWAVFile->Read(buff, 1, size)));
+
+    if(!bytesread)
     {
         if (ipWAVFile->EndOfFile())
             return PVWAVPARSER_END_OF_FILE;
