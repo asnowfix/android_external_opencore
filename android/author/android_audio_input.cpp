@@ -723,7 +723,7 @@ bool AndroidAudioInput::setAudioFormatType(char *iAudioFormat)
   // MPEG4_AUDIO supports only MIC recording
   if (!pv_mime_strcmp(iAudioFormat, PVMF_MIME_MPEG4_AUDIO))
   {
-      if ((iAudioSource != AUDIO_SOURCE_DEFAULT) && (iAudioSource != AUDIO_SOURCE_MIC))
+      if ((iAudioSource != AUDIO_SOURCE_DEFAULT) && (iAudioSource != AUDIO_SOURCE_MIC) && (iAudioSource != AUDIO_SOURCE_CAMCORDER))
       {
           LOGE("Returning failure because the format type does not support this input source %d", iAudioSource);
           return false;
