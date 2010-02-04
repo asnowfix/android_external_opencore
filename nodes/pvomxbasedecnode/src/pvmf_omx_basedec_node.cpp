@@ -4129,7 +4129,7 @@ void PVMFOMXBaseDecNode::DoPrepare(PVMFOMXBaseDecNodeCommand& aCmd)
             }
             // call once to find out the number of components that can fit the role
             OMX_MasterGetComponentsOfRole(aInputParameters.cComponentRole, &num_comps, NULL);
-            uint32 ii;
+            int32 ii;
 
             PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG,
                             (0, "%s::DoPrepare(): There are %d components of role %s ", iName.Str(), num_comps, aInputParameters.cComponentRole));
@@ -4148,6 +4148,7 @@ void PVMFOMXBaseDecNode::DoPrepare(PVMFOMXBaseDecNodeCommand& aCmd)
                 {
                     aInputParameters.cComponentName = CompOfRole[ii];
                     status = OMX_MasterConfigParser(&aInputParameters, aOutputParameters);
+
                     if (status == OMX_TRUE)
                     {
                         // but also needs to valid long enough to use it when getting the number of roles later on
@@ -4180,6 +4181,11 @@ void PVMFOMXBaseDecNode::DoPrepare(PVMFOMXBaseDecNodeCommand& aCmd)
                     }
                     else
                     {
+                        if (bHWAccelerated == OMX_FALSE)
+                        {
+                           bHWAccelerated = OMX_TRUE;
+                           ii=-1;
+                        }
                         status = OMX_FALSE;
                     }
 
