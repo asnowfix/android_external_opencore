@@ -1654,9 +1654,9 @@ PVMFStatus PVMFOMXBaseDecNode::HandleProcessingState()
 
                 if ( OMX_ErrorNone != OMX_EmptyThisBuffer(iOMXDecoder, iInputBufferToResendToComponent) )
                 {
-                    iInputBufferToResendToComponent = NULL; // do this only once
                     status = PVMFPending;
                     EmptyBufferDoneProcessing(iOMXDecoder, NULL, iInputBufferToResendToComponent);
+                    iInputBufferToResendToComponent = NULL; // do this only once
                     return status;
                 }
                 iInputBufferToResendToComponent = NULL; // do this only once
@@ -1945,9 +1945,9 @@ OSCL_EXPORT_REF void PVMFOMXBaseDecNode::SendIncompleteBufferUnderConstruction()
 
         if ( OMX_ErrorNone != OMX_EmptyThisBuffer(iOMXDecoder, iInputBufferUnderConstruction->pBufHdr) )
         {
-            iInputBufferUnderConstruction = NULL;
             iObtainNewInputBuffer = false;
             EmptyBufferDoneProcessing(iOMXDecoder, NULL, iInputBufferUnderConstruction->pBufHdr);
+            iInputBufferUnderConstruction = NULL;
             return;
         }
 
