@@ -60,7 +60,8 @@
 // Don't understand the organization of the status codes so using available bit
 #define FRAME_OUTPUTNOTAVAILABLE            0x20    //memory for parser output data not available
 
-
+// Enabling this flag will make sure that LATM frames are separated in multiple fragments
+#define LATM_PARSE_MULTIPLE_FRAGMENTS
 
 // this is a structure i need to hold information used in demultiplexing
 typedef struct _streamMuxConfig
@@ -123,8 +124,12 @@ class PV_LATM_Parser
 
 
     private:
+#ifndef LATM_PARSE_MULTIPLE_FRAGMENTS
         uint8 composeSingleFrame(PVMFSharedMediaDataPtr&);
         uint8 composeMultipleFrame(PVMFSharedMediaDataPtr&);
+#else
+        uint8 composeFrame(PVMFSharedMediaDataPtr& mediaDataIn, OsclSharedPtr<PVMFMediaDataImpl>& aMediaFragGroup);
+#endif
         uint8 composeSingleFrame(uint8* aData, uint32 aDataLen, uint32 aTimestamp, uint32 aSeqNum, uint32 aMbit);
         uint8 composeMultipleFrame(uint8* aData, uint32 aDataLen, uint32 aTimestamp, uint32 aSeqNum, uint32 aMbit);
 
@@ -159,6 +164,12 @@ class PV_LATM_Parser
         // Memory pool for simple media data
         OsclMemPoolFixedChunkAllocator iMediaDataMemPool;
 
+#ifdef LATM_PARSE_MULTIPLE_FRAGMENTS
+        // Memory pool for media data buffer impl that holds multiple media fragments
+        OsclMemPoolFixedChunkAllocator* iMediaDataGroupImplMemPool;
+        // Allocator for media frag group
+        PVMFMediaFragGroupCombinedAlloc<OsclMemAllocator>* iMediaDataGroupAlloc;
+#endif
 
         streamMuxConfig * sMC;
         uint8*  multiFrameBuf;

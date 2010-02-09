@@ -41,10 +41,6 @@
         param.nVersion.s.nStep = SPECSTEP;
 
 #define PVOMXBASEDEC_MEDIADATA_CHUNKSIZE 128
-
-// minimum buffer size required to decode LATM streaming packets
-#define LATM_MIN_BUFFER_LEN 1550
-
 #if 0
 #include <utils/Log.h>
 #undef LOG_TAG
@@ -2570,13 +2566,17 @@ OSCL_EXPORT_REF bool PVMFOMXBaseDecNode::SendInputBufferToOMXComponent()
                     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
                                     (0, "%s::SendInputBufferToOMXComponent() - END OF FRAGMENT - Multifragmented msg AVC case, Buffer 0x%x MARKER bit set to 1", iName.Str(), input_buf->pBufHdr->pBuffer));
 
+
                     if (!iOMXComponentUsesFullAVCFrames)
                     {
                         // NAL mode, (uses OMX_BUFFERFLAG_ENDOFFRAME flag to mark end of NAL instead of end of frame)
                         // once NAL is complete, make sure you send it and obtain new buffer
                         if ((iCurrFragNum == iDataIn->getNumFragments()) ||
-                                (((PVMFOMXDecPort*)iInPort)->iFormat != PVMF_MIME_3640))
+                                ((((PVMFOMXDecPort*)iInPort)->iFormat != PVMF_MIME_3640) &&
+                                 (((PVMFOMXDecPort*)iInPort)->iFormat != PVMF_MIME_LATM)))
+                        {
                             input_buf->pBufHdr->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
+                        }
                         iObtainNewInputBuffer = true;
                     }
                     else if (iCurrentMsgMarkerBit & PVMF_MEDIA_DATA_MARKER_INFO_M_BIT)
@@ -2636,17 +2636,8 @@ OSCL_EXPORT_REF bool PVMFOMXBaseDecNode::SendInputBufferToOMXComponent()
                 // if all the fragments have been exhausted, and this is the last piece
                 // of the (possibly broken up) last fragment
 
-                if ((!iOMXComponentSupportsPartialFrames) &&
-                        (((PVMFOMXDecPort*)iInPort)->iFormat == PVMF_MIME_LATM) &&
-                        (input_buf->pBufHdr->nFilledLen < LATM_MIN_BUFFER_LEN))
-                {
-                    PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
-                        (0, "Buffering for LATM Streaming. nAllocLen=%d nFilledLen=%d",
-                            input_buf->pBufHdr->nAllocLen,
-                            input_buf->pBufHdr->nFilledLen));
-                }
                 // use the marker bit from the end of message
-                else if (iCurrentMsgMarkerBit)
+                if (iCurrentMsgMarkerBit)
                 {
                     PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
                                     (0, "%s::SendInputBufferToOMXComponent() - END OF MESSAGE - Buffer 0x%x MARKER bit set to 1, TS=%d, Ticks=%L", iName.Str(), input_buf->pBufHdr->pBuffer, iInTimestamp, iOMXTicksTimestamp));
@@ -2671,7 +2662,6 @@ OSCL_EXPORT_REF bool PVMFOMXBaseDecNode::SendInputBufferToOMXComponent()
 
 
         }// end of else(setmarkerbitforeveryfrag)
-
 
         // set the key frame flag if necessary (mark every fragment that belongs to it)
         if (iDataIn->getMarkerInfo() & PVMF_MEDIA_DATA_MARKER_INFO_RANDOM_ACCESS_POINT_BIT)
@@ -4356,7 +4346,8 @@ void PVMFOMXBaseDecNode::DoPrepare(PVMFOMXBaseDecNodeCommand& aCmd)
             }
 
             // ONLY FOR AVC FILE PLAYBACK WILL 1 FRAGMENT CONTAIN ONE FULL NAL
-            if ((format == PVMF_MIME_H264_VIDEO) || (format == PVMF_MIME_H264_VIDEO_MP4) || (format == PVMF_MIME_3640))
+            if ((format == PVMF_MIME_H264_VIDEO) || (format == PVMF_MIME_H264_VIDEO_MP4) ||
+                    (format == PVMF_MIME_3640) || (format == PVMF_MIME_LATM))
             {
                 // every memory fragment in case of AVC is a full NAL and
                 // in case of 3640, it is full frame.
