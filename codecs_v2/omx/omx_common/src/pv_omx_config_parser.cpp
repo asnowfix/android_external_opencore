@@ -26,8 +26,7 @@
 #include "pv_omx_config_parser.h"
 #include "pv_omxcore.h"
 
-#define MAX_HEIGHT_RESOLUTION 480
-#define MAX_WIDTH_RESOLUTION 800
+#define  SIMPLE_PROFILE_LEVEL0 0
 
 #if (USE_DYNAMIC_LOAD_OMX_COMPONENTS == 0)
 // in case of static build - just redirect master omx core call to local pv core call
@@ -146,8 +145,7 @@ OSCL_EXPORT_REF OMX_BOOL OMXConfigParser(
             {
                 return OMX_FALSE;
             }
-            if(((((VideoOMXConfigParserOutputs *)aOutputParameters)->height > MAX_HEIGHT_RESOLUTION) &&
-               (((VideoOMXConfigParserOutputs *)aOutputParameters)->width > MAX_WIDTH_RESOLUTION)) ||
+            if((((VideoOMXConfigParserOutputs *)aOutputParameters)->level != SIMPLE_PROFILE_LEVEL0)||
                (aInputs.iMimeType == PVMF_MIME_H2632000))
             {
                 /* disable software decoder */
