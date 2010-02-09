@@ -3176,7 +3176,7 @@ int32 SampleTableAtom::getOffsetByTime(uint32 ts, int32* sampleFileOffset)
 
     // Need to add up all the sizes from the first sample in this run up to the
     // the requested sample (but not including it)
-    int32 tempSize = 0;
+    uint32 tempSize = 0;
 
 
     for (int32 i = first; i < sampleNum; i++)

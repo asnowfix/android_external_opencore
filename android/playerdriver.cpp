@@ -1432,8 +1432,9 @@ void PlayerDriver::HandleInformationalEvent(const PVAsyncInformationalEvent& aEv
             // there is any bug associated with it; Meanwhile, lets treat this as an error
             // since after playerdriver receives this event, playback session cannot be
             // recovered.
-            mPvPlayer->sendEvent(MEDIA_ERROR, ::android::MEDIA_ERROR_UNKNOWN,
-                                 PVMFInfoContentTruncated);
+            if(mDataSource->GetDataSourceFormatType() != PVMF_MIME_FORMAT_UNKNOWN)
+                mPvPlayer->sendEvent(MEDIA_ERROR, ::android::MEDIA_ERROR_UNKNOWN,
+                                     PVMFInfoContentTruncated);
             break;
 
         case PVMFInfoContentLength:
