@@ -23,7 +23,7 @@
 #include <media/thread_init.h>
 #include <core/SkBitmap.h>
 #include <private/media/VideoFrame.h>
-#include <cutils/properties.h>
+
 #include "metadatadriver.h"
 
 using namespace android;
@@ -530,17 +530,7 @@ void MetadataDriver::handleCreate()
 {
     LOGV("handleCreate");
     int error = 0;
-    char value[PROPERTY_VALUE_MAX];
-    property_get("ro.product.device", value, "0");
-    // Workaround for 7x30: Use hardware decoder for thumbnail creation
-    if (strcmp("msm7630_surf", value) != 0)
-    {
-    OSCL_TRY(error, mUtil = PVFrameAndMetadataFactory::CreateFrameAndMetadataUtility((char*)PVMF_MIME_YUV420, this, this, this, false));}
-    else
-    {
-    LOGE("detected 7x30 : use hw decoder  \n");
-    OSCL_TRY(error, mUtil = PVFrameAndMetadataFactory::CreateFrameAndMetadataUtility((char*)PVMF_MIME_YUV420, this, this, this));
-    }
+    OSCL_TRY(error, mUtil = PVFrameAndMetadataFactory::CreateFrameAndMetadataUtility((char*)PVMF_MIME_YUV420, this, this, this, false));
     if (error || mUtil->SetMode(PV_FRAME_METADATA_INTERFACE_MODE_SOURCE_METADATA_AND_THUMBNAIL) != PVMFSuccess) {
         handleCommandFailure();
     } else {
