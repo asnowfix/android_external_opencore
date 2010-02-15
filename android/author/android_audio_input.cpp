@@ -1230,8 +1230,12 @@ int AndroidAudioInput::audin_thread_func() {
     LOGV("create AudioRecord %p", this);
     int32 nFrameSize = sizeof(int16); // Default PCM_16_BIT frame size.
 
+    if (iAudioFormatType == android::AudioSystem::PCM_16_BIT)
+    {
+      kBufferSize = 2048; //Buffer Size for AMR-NB software encode
+    }
     // if format is AMR then set the corresponding map type from audiosystem
-    if (iAudioFormatType == android::AudioSystem::AMR_NB)
+    else if (iAudioFormatType == android::AudioSystem::AMR_NB)
     {
       nFrameSize = 32;     // Full rate frame size
       kBufferSize = 1280;
