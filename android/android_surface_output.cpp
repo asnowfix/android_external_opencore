@@ -58,6 +58,7 @@ OSCL_EXPORT_REF AndroidSurfaceOutput::AndroidSurfaceOutput() :
     iFirstFrameLatencyStart = 0;
     property_get("persist.debug.pv.statistics", value, "0");
     if(atoi(value)) mStatistics = true;
+    mNumberOfFramesToHold = 2;
 }
 
 status_t AndroidSurfaceOutput::set(PVPlayer* pvPlayer, const sp<ISurface>& surface, bool emulation)
@@ -941,7 +942,7 @@ void AndroidSurfaceOutput::Run()
         processWriteResponseQueue(0);
         iEosReceived = false;
     } else {
-        processWriteResponseQueue(2);
+        processWriteResponseQueue(mNumberOfFramesToHold);
     }
 }
 
