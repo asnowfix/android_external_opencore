@@ -3047,8 +3047,7 @@ bool PVMFOMXEncNode::SetH264EncoderParameters()
 
     //Set the parameters now
     BitRateType.nPortIndex = iOutputPortIndex;
-    //Temporarily disabling Rate control for 7x30
-    BitRateType.eControlRate = OMX_Video_ControlRateDisable; //static_cast<OMX_VIDEO_CONTROLRATETYPE>(iVideoEncodeParam.iRateControlType);
+    BitRateType.eControlRate = static_cast<OMX_VIDEO_CONTROLRATETYPE>(iVideoEncodeParam.iRateControlType);
     BitRateType.nTargetBitrate = iVideoEncodeParam.iBitRate[0];
     Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamVideoBitrate, &BitRateType);
     if (OMX_ErrorNone != Err)
