@@ -1700,7 +1700,7 @@ OSCL_EXPORT_REF bool CAACFileParser::InitAACFile(OSCL_wString& aClip,  bool aIni
                     if (status == AACBitstreamObject::EVERYTHING_OK)
                     {
                         // calulate the number of frames
-                        iAACDuration ++;
+                        iAACDuration += numBlocks;
 
                         // set up the table for randow positioning
                         int32 frame_length = frame_size + ADTS_HEADER_LENGTH + (ipBSO->isCRCEnabled() ? 2 : 0);
@@ -2168,10 +2168,15 @@ CAACFileParser::GetNextBundledAccessUnits(uint32 *aNumSamples,
 
             else if (returnValue == AACBitstreamObject::EVERYTHING_OK && frame_size > 0)
             {
+                // Minimum number of samples that can be parsed must be atleast the numBlocks
+                // in the first ADTS frame that can be parsed
+                if((*aNumSamples < numBlocks) && (i == 0)){
+                    *aNumSamples = numBlocks;
+                }
                 // Check whether the gau buffer will be overflow or the requested number
                 // of samples will be met
                 if (bytesReadInGau + frame_size >= gauBufferSize ||
-                        numSamplesRead + 1 > *aNumSamples)
+                        numSamplesRead + numBlocks > *aNumSamples)
                     break;
 
                 // At this point, we can get the next frame
@@ -2188,8 +2193,9 @@ CAACFileParser::GetNextBundledAccessUnits(uint32 *aNumSamples,
                     pTempGau += frame_size;
                     bytesReadInGau += frame_size;
                     aGau->info[i].len = frame_size + hdrSize;
-                    aGau->info[i].ts  = (int32)(((OsclFloat)(iTotalNumFramesRead++) * 1024000.0) / (OsclFloat)iAACSampleFrequency); // BX
-                    numSamplesRead ++;
+                    aGau->info[i].ts  = (int32)(((OsclFloat)(iTotalNumFramesRead) * 1024000.0) / (OsclFloat)iAACSampleFrequency); // BX
+                    iTotalNumFramesRead += numBlocks;
+                    numSamplesRead += numBlocks;
                 }
                 else
                 { // error happens!!
