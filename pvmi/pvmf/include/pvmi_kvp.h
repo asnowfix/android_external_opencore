@@ -442,6 +442,10 @@ class PvmfAssetInfo3GPPLocationStruct
 // Keys for buffer allocator
 #define PVMF_BUFFER_ALLOCATOR_KEY "x-pvmf/media/buffer_allocator;valtype=key_specific_value"
 
+// Keys for PMEM Buffer Info
+#define PVMF_PMEM_BUFFER_INFO_KEY "x-pvmf/media/pmem_buffer_info;valtype=int32_value"
+#define PVMF_NUM_PMEM_BUFFER_INFO_PARAMS 4
+
 // Keys for format specific info plus first media sample for any type of media
 #define PVMF_FORMAT_SPECIFIC_INFO_PLUS_FIRST_SAMPLE_KEY "x-pvmf/media/format_specific_info_plus_first_sample;valtype=uint8*"
 

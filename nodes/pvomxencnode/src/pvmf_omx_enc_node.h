@@ -158,6 +158,10 @@ typedef struct InputBufCtrlStruct
     PVMFSharedMediaDataPtr pMediaData;
 } InputBufCtrlStruct;
 
+typedef struct CameraPmemInfoStruct {
+    uint32 pmem_fd; /* pmem file descriptor */
+    uint32 offset;  /* pmem buffer offset */
+} CameraPmemInfo;
 
 // fwd class declaration
 class PVLogger;

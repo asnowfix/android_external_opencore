@@ -270,9 +270,19 @@ class PVRefBufferAlloc: public PVInterface, public PVMFFixedSizeBufferAlloc
             return bufferSize;
         }
 
+        void setBufferSize(uint32 bufSize)
+        {
+            bufferSize = bufSize;
+        }
+
         virtual uint32 getNumBuffers()
         {
             return maxBuffers;
+        }
+
+        void setNumBuffers(uint32 numBuffers)
+        {
+            maxBuffers = numBuffers;
         }
 
     private:

@@ -2287,6 +2287,10 @@ bool PVMFOMXEncNode::NegotiateVideoComponentParameters()
         }
     }
 
+    /* This is a dummy allocator object, to get the PMem buffers infomation.
+       Set it back to NULL as the required informaion is received */
+    ipFixedSizeBufferAlloc = NULL;
+
     // set the number of input buffer
     iParamPort.nBufferCountActual = iNumInputBuffers;
 
@@ -4327,6 +4331,38 @@ bool PVMFOMXEncNode::ProvideBuffersToComponent(OsclMemPoolFixedChunkAllocator *a
     uint32 ii = 0;
     OMX_ERRORTYPE err = OMX_ErrorNone;
     OsclAny **ctrl_struct_ptr = aIsThisInputBuffer ? in_ctrl_struct_ptr : out_ctrl_struct_ptr;
+    uint8 *pPmemBufBasePtr;
+    CameraPmemInfo *pPmemInfo = NULL;
+
+    if (aIsThisInputBuffer && aUseBufferOK) {
+        PvmiKvp* kvp = NULL;
+        int numKvp = 0;
+        int iIndex, numPmemBuf, pMemFd, pMemBufSize;
+        PvmiKeyType aIdentifier = (PvmiKeyType)PVMF_PMEM_BUFFER_INFO_KEY;
+        int32 err, err1;
+        OSCL_TRY(err, ((PVMFOMXEncPort*)iInPort)->pvmiGetBufferAllocatorSpecificInfoSync(aIdentifier, kvp, numKvp););
+
+        if (numKvp == PVMF_NUM_PMEM_BUFFER_INFO_PARAMS) {
+            numPmemBuf      = kvp[0].value.int32_value;
+            pMemFd          = kvp[1].value.int32_value;
+            pPmemBufBasePtr = kvp[2].value.pUint8_value;
+            pMemBufSize     = kvp[3].value.int32_value;
+
+            LOGV("numPmemBuf = %d pMemFd = %d pMemBufSize = %d",numPmemBuf,pMemFd,pMemBufSize);
+            pPmemInfo = new CameraPmemInfo[numPmemBuf];
+
+            if(NULL == pPmemInfo) {
+                LOGE("Failed to allocate the camera pmem info buffer array. numPmemBuf %d",numPmemBuf);
+                return PVMFFailure;
+            } else {
+                for(iIndex = 0; iIndex < numPmemBuf; iIndex++) {
+                    pPmemInfo[iIndex].pmem_fd = pMemFd;
+                    pPmemInfo[iIndex].offset  = iIndex * pMemBufSize;
+                }
+            }
+        }
+        OSCL_TRY(err1, ((PVMFOMXEncPort*)iInPort)->releaseParametersSync(kvp, numKvp););
+    }
 
     // Now, go through all buffers and tell component to
     // either use a buffer, or to allocate its own buffer
@@ -4374,22 +4410,31 @@ bool PVMFOMXEncNode::ProvideBuffersToComponent(OsclMemPoolFixedChunkAllocator *a
             // in case of input buffers, initialize also MediaDataSharedPtr structure
             if (aIsThisInputBuffer)
             {
+                OMX_PTR pAppPrivate;
+                uint8  *pBufPtr;
+                if(pPmemInfo != NULL){
+                    pAppPrivate = (OMX_PTR)&pPmemInfo[ii];
+                    LOGV("pAppPrivate = %p  fd = %d offset = %d",&pPmemInfo[ii], pPmemInfo[ii].pmem_fd, pPmemInfo[ii].offset);
+                    pBufPtr = pPmemBufBasePtr + pPmemInfo[ii].offset;
+                } else {
+                    pAppPrivate = (OMX_PTR)ctrl_struct_ptr[ii];
+                    // advance ptr to skip the structure
+                    pB += oscl_mem_aligned_size(sizeof(InputBufCtrlStruct));
+                    pBufPtr = pB;
+                }
 
                 InputBufCtrlStruct *temp = (InputBufCtrlStruct *) ctrl_struct_ptr[ii];
                 oscl_memset(&(temp->pMediaData), 0, sizeof(PVMFSharedMediaDataPtr));
                 temp->pMediaData = PVMFSharedMediaDataPtr(NULL, NULL);
 
-                // advance ptr to skip the structure
-                pB += oscl_mem_aligned_size(sizeof(InputBufCtrlStruct));
-
                 err = OMX_UseBuffer(iOMXEncoder,    // hComponent
                                     &(temp->pBufHdr),       // address where ptr to buffer header will be stored
                                     aPortIndex,             // port index (for port for which buffer is provided)
-                                    ctrl_struct_ptr[ii],    // App. private data = pointer to beginning of allocated data
+                                    pAppPrivate,    // App. private data = pointer to beginning of allocated data
                                     //              to have a context when component returns with a callback (i.e. to know
                                     //              what to free etc.
                                     (OMX_U32)aActualBufferSize,     // buffer size
-                                    pB);                        // buffer data ptr
+                                    pBufPtr);                       // buffer data ptr
 
                 in_buff_hdr_ptr[ii] = temp->pBufHdr;
 
@@ -4473,6 +4518,10 @@ bool PVMFOMXEncNode::ProvideBuffersToComponent(OsclMemPoolFixedChunkAllocator *a
             return false;
         }
 
+    }
+
+    if(pPmemInfo) {
+        delete pPmemInfo;
     }
 
     for (ii = 0; ii < aNumBuffers; ii++)
@@ -5404,8 +5453,6 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
                 //check for END OF FRAME FLAG
                 iEndOfFrameFlagOut = (aBuffer->nFlags & OMX_BUFFERFLAG_ENDOFFRAME);
                 iBufferLenOut = aBuffer->nFilledLen;
-
-
             }
             // if there's a problem queuing output buffer, MediaDataCurr will expire at end of scope and
             // release buffer back to the pool, (this should not be the case)
