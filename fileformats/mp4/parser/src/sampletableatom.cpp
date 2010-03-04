@@ -1281,6 +1281,9 @@ SampleTableAtom::getNextSample(uint8 *buf, int32 &size, uint32 &index, uint32 &S
     int8 aFrameSizes[16] = {12, 13, 15, 17, 19, 20, 26, 31,
                             5,  0,  0,  0,  0,  0,  0,  0
                            };
+    int8 aAMRWBFrameSizes[16] = {17, 23, 32, 36, 40, 46, 50, 58,
+                            60,  5,  34,  45,  60,  60,  0,  0
+                           };
 
     if (_ptimeToSampleAtom == NULL)
     {
@@ -1326,6 +1329,7 @@ SampleTableAtom::getNextSample(uint8 *buf, int32 &size, uint32 &index, uint32 &S
     {
         if (_amrSampleSize > 0)
         {
+            int32 frame_size = 0;
             uint8 frame_type = *(_pAMRTempBuffer + _amrTempBufferOffset);
 
             frame_type = (uint8)((frame_type >> 3) & 0x0F);
@@ -1339,7 +1343,10 @@ SampleTableAtom::getNextSample(uint8 *buf, int32 &size, uint32 &index, uint32 &S
                 return (READ_AMR_SAMPLE_ENTRY_FAILED);
             }
 
-            int32 frame_size = aFrameSizes[(uint16)frame_type];
+            if (_psampleDescriptionAtom->getObjectTypeIndication() == AMR_AUDIO_3GPP)
+                frame_size = aFrameSizes[(uint16)frame_type];
+            if (_psampleDescriptionAtom->getObjectTypeIndication() == AMRWB_AUDIO_3GPP)
+                frame_size = aAMRWBFrameSizes[(uint16)frame_type];
             index = frame_type;
 
             if (frame_size > size)
@@ -1361,6 +1368,7 @@ SampleTableAtom::getNextSample(uint8 *buf, int32 &size, uint32 &index, uint32 &S
         }
         else
         {
+            int32 frame_size = 0;
             _amrTempBufferOffset = 0;
 
             _amrSampleSize = 512;
@@ -1390,7 +1398,10 @@ SampleTableAtom::getNextSample(uint8 *buf, int32 &size, uint32 &index, uint32 &S
                 return (READ_AMR_SAMPLE_ENTRY_FAILED);
             }
 
-            int32 frame_size = aFrameSizes[(uint16)frame_type];
+            if (_psampleDescriptionAtom->getObjectTypeIndication() == AMR_AUDIO_3GPP)
+                frame_size = aFrameSizes[(uint16)frame_type];
+            if (_psampleDescriptionAtom->getObjectTypeIndication() == AMRWB_AUDIO_3GPP)
+                frame_size = aAMRWBFrameSizes[(uint16)frame_type];
 
             index = frame_type;
 
