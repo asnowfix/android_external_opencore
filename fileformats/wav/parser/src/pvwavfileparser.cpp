@@ -420,6 +420,8 @@ OSCL_EXPORT_REF PVWavParserReturnCode PV_Wav_Parser::InitWavParser(OSCL_wString&
             {
                 NumSamples = ((PCMBytesPresent / (BytesPerSample)) / NumChannels);
             }
+            if (((uint32)(BytesPerSample*NumChannels) + filepos) > iEndOfDataSubChunkOffset)
+                return PVWAVPARSER_MISC_ERROR;
         }
     }
 
