@@ -2513,7 +2513,7 @@ OSCL_EXPORT_REF bool PVMFOMXBaseDecNode::SendInputBufferToOMXComponent()
         // set buffer fields (this is the same regardless of whether the input is movable or not
         input_buf->pBufHdr->nOffset = 0;
 
-        iInputTimestampClock.update_clock(iInTimestamp); // this will also take into consideration the timestamp rollover
+        iInputTimestampClock.set_clock(iInTimestamp,0); // this will also take into consideration the timestamp rollover
 
         // convert TS in input timescale into OMX_TICKS
         iOMXTicksTimestamp = ConvertTimestampIntoOMXTicks(iInputTimestampClock);
