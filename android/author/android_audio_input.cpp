@@ -712,6 +712,14 @@ bool AndroidAudioInput::setAudioFormatType(char *iAudioFormat)
   int numParams = 0;
   int32 err = 0;
 
+#ifdef SURF8K
+  if (iAudioSource == AUDIO_SOURCE_VOICE_DOWNLINK)
+  {
+      LOGE("Rx Voice call recording is not supported on 8K");
+      return false;
+  }
+#endif
+
   // Check for the support of this Codec with the Source. If this codec cannot
   // support other than MIC recording, return error
   // MPEG4_AUDIO supports only MIC recording
