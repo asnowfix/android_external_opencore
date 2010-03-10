@@ -2544,11 +2544,11 @@ bool PVMFOMXEncNode::SetMP4EncoderParameters()
     Mpeg4Type.nHeaderExtension = 0;
     Mpeg4Type.bReversibleVLC = ((iVideoEncodeParam.iRVLCEnable == true) ? OMX_TRUE : OMX_FALSE);
 
-    // workaround for 7x30 do not set profile and level :
+    // workaround for 7x30 and 8250, do not set profile and level :
     // This is to prevent overwriting profile/level value set by the component
     char value[PROPERTY_VALUE_MAX];
     property_get("ro.product.device", value, "0");
-    if (strcmp("msm7630_surf", value) != 0)
+    if (strcmp("msm7627_surf", value) == 0)
     {
     switch (iVideoEncodeParam.iProfileLevel)
     {
