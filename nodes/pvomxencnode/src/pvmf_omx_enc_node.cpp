@@ -5669,6 +5669,7 @@ OsclSharedPtr<PVMFMediaDataImpl> PVMFOMXEncNode::WrapOutputBuffer(uint8 *pData, 
         {
             // skip start code
             pData += iFirstNALStartCodeSize;
+            aDataLen -= iFirstNALStartCodeSize;
         }
 
         memFrag.ptr = pData;
