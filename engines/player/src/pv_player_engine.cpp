@@ -8420,6 +8420,15 @@ PVMFStatus PVPlayerEngine::DoPause(PVPlayerEngineCommand& aCmd)
             break;
 
         case PVP_STATE_PREPARED :
+
+            if (aCmd.GetCmdType() == PVP_ENGINE_COMMAND_PAUSE)
+            {
+                // It is possible to get pause command in the prepare state.
+                // This is ideally sent during the initial bootup time and to handle the TCXO
+                // shutdown for hardware decoders.
+                break;
+            }
+
             if (aCmd.GetCmdType() == PVP_ENGINE_COMMAND_PAUSE_DUE_TO_ENDOFCLIP)
             {
                 //It is possible in repositioning to end use-case that
@@ -8658,6 +8667,14 @@ PVMFStatus PVPlayerEngine::DoResume(PVPlayerEngineCommand& aCmd)
     else
     {
         retval = DoSourceNodeStart(aCmd.GetCmdId(), aCmd.GetContext());
+
+        // Explicitly start the playback clock. Sometimes we see that the
+        // playbackclock is not started, during Resume / TCXO shutdown
+        if (PVMFSuccess == retval)
+        {
+            UpdateCurrentEndPosition(iCurrentEndPosition);
+            StartPlaybackClock();
+        }
     }
 
     if (retval != PVMFSuccess)
