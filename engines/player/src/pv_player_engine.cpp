@@ -1923,7 +1923,7 @@ void PVPlayerEngine::NodeCommandCompleted(const PVMFCmdResp& aResponse)
     OSCL_ASSERT(nodecontext);
 
     // Ignore other node completion if cancelling
-    if (!iCmdToCancel.empty() || (CheckForPendingErrorHandlingCmd() && aResponse.GetCmdStatus() == PVMFErrCancelled))
+    if (CheckForPendingErrorHandlingCmd() && aResponse.GetCmdStatus() == PVMFErrCancelled)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, "PVPlayerEngine::NodeCommandCompleted() Node command completion ignored due to cancel process, id=%d", aResponse.GetCmdId()));
         // Remove the context from the list
