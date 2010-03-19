@@ -4185,7 +4185,7 @@ bool PVMFOMXEncNode::CreateOutMemPool(uint32 num_buffers)
     }
 
     int32 leavecode = 0;
-    OSCL_TRY(leavecode, iOutBufMemoryPool = OSCL_NEW(OsclMemPoolFixedChunkAllocator, (num_buffers)););
+    OSCL_TRY(leavecode, iOutBufMemoryPool = ThreadSafeMemPoolFixedChunkAllocator::Create((num_buffers)););
     if (leavecode || iOutBufMemoryPool == NULL)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger,
