@@ -5657,7 +5657,7 @@ OsclSharedPtr<PVMFMediaDataImpl> PVMFOMXEncNode::WrapOutputBuffer(uint8 *pData, 
 {
     // wrap output buffer into a mediadataimpl
     uint32 aligned_cleanup_size = oscl_mem_aligned_size(sizeof(PVOMXEncBufferSharedPtrWrapperCombinedCleanupDA));
-    uint32 aligned_refcnt_size = oscl_mem_aligned_size(sizeof(OsclRefCounterDA));
+    uint32 aligned_refcnt_size = oscl_mem_aligned_size(sizeof(OsclRefCounterMTDA<OsclMutex>));
     uint8 *my_ptr = (uint8*) oscl_malloc(aligned_cleanup_size + aligned_refcnt_size);
 
     if (my_ptr == NULL)
@@ -5671,14 +5671,14 @@ OsclSharedPtr<PVMFMediaDataImpl> PVMFOMXEncNode::WrapOutputBuffer(uint8 *pData, 
         OSCL_PLACEMENT_NEW(my_ptr + aligned_refcnt_size, PVOMXEncBufferSharedPtrWrapperCombinedCleanupDA(iOutBufMemoryPool, pContext));
 
     // create the ref counter after the cleanup object (refcount is set to 1 at creation)
-    OsclRefCounterDA *my_refcnt;
+	OsclRefCounterMTDA<OsclMutex> *my_refcnt;
     PVMFMediaDataImpl* media_data_ptr;
 
     if (iOMXComponentUsesFullAVCFrames && iNumNALs > 0)
     {
         uint32 ii;
         media_data_ptr = OSCL_NEW(PVMFMediaFragGroup<OsclMemAllocator>, (iNumNALs));
-        my_refcnt = OSCL_PLACEMENT_NEW(my_ptr, OsclRefCounterDA(media_data_ptr, cleanup_ptr));
+		my_refcnt = OSCL_PLACEMENT_NEW(my_ptr, OsclRefCounterMTDA<OsclMutex>(media_data_ptr, cleanup_ptr));
 
         // loop through and assign a create a media fragment for each NAL
         for (ii = 0; ii < iNumNALs; ii++)
@@ -5709,7 +5709,7 @@ OsclSharedPtr<PVMFMediaDataImpl> PVMFOMXEncNode::WrapOutputBuffer(uint8 *pData, 
     else
     {
         media_data_ptr = OSCL_NEW(PVMFMediaFragGroup<OsclMemAllocator>, (1));
-        my_refcnt = OSCL_PLACEMENT_NEW(my_ptr, OsclRefCounterDA(media_data_ptr, cleanup_ptr));
+		my_refcnt = OSCL_PLACEMENT_NEW(my_ptr, OsclRefCounterMTDA<OsclMutex>(media_data_ptr, cleanup_ptr));
 
         OsclMemoryFragment memFrag;
 
