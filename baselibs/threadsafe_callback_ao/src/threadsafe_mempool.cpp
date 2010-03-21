@@ -204,7 +204,6 @@ OSCL_EXPORT_REF void ThreadSafeMemPoolFixedChunkAllocator::deallocate(OsclAny* p
 
     if (iRefCount > 0)
     {
-        iMemPoolMutex.Unlock();
         // Notify the observer about free chunk available if waiting for such callback
         if (iCheckNextAvailableFreeChunk)
         {
@@ -214,6 +213,7 @@ OSCL_EXPORT_REF void ThreadSafeMemPoolFixedChunkAllocator::deallocate(OsclAny* p
                 iObserver->freechunkavailable(iNextAvailableContextData);
             }
         }
+        iMemPoolMutex.Unlock();
     }
     else
     {
