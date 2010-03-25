@@ -290,9 +290,8 @@ PVMFStatus PVMFOMXVideoDecNode::HandlePortReEnable()
                     fsiInfo->buffer_size = iOMXComponentOutputBufferSize;
                     fsiInfo->width = iStride;
                     fsiInfo->height = iSliceHeight;
-
                     OsclMemAllocator alloc;
-                    int32 KeyLength = oscl_strlen(PVMF_FORMAT_SPECIFIC_INFO_KEY_YUV) + 1;
+                    int32 KeyLength = oscl_strlen(PVMF_FORMAT_SPECIFIC_INFO_KEY) + 1;
                     PvmiKeyType KvpKey = (PvmiKeyType)alloc.ALLOCATE(KeyLength);
 
                     if (NULL == KvpKey)
@@ -300,7 +299,7 @@ PVMFStatus PVMFOMXVideoDecNode::HandlePortReEnable()
                         return false;
                     }
 
-                    oscl_strncpy(KvpKey, PVMF_FORMAT_SPECIFIC_INFO_KEY_YUV, KeyLength);
+                    oscl_strncpy(KvpKey, PVMF_FORMAT_SPECIFIC_INFO_KEY, KeyLength);
                     int32 err;
 
                     OSCL_TRY(err, ((PVMFOMXDecPort*)iOutPort)->pvmiSetPortFormatSpecificInfoSync(yuvFsiMemfrag, KvpKey););
@@ -940,7 +939,7 @@ bool PVMFOMXVideoDecNode::NegotiateComponentParameters(OMX_PTR aOutputParameters
                 fsiInfo->height = iSliceHeight;
 
                 OsclMemAllocator alloc;
-                int32 KeyLength = oscl_strlen(PVMF_FORMAT_SPECIFIC_INFO_KEY_YUV) + 1;
+                int32 KeyLength = oscl_strlen(PVMF_FORMAT_SPECIFIC_INFO_KEY) + 1;
                 PvmiKeyType KvpKey = (PvmiKeyType)alloc.ALLOCATE(KeyLength);
 
                 if (NULL == KvpKey)
@@ -948,7 +947,7 @@ bool PVMFOMXVideoDecNode::NegotiateComponentParameters(OMX_PTR aOutputParameters
                     return false;
                 }
 
-                oscl_strncpy(KvpKey, PVMF_FORMAT_SPECIFIC_INFO_KEY_YUV, KeyLength);
+                oscl_strncpy(KvpKey, PVMF_FORMAT_SPECIFIC_INFO_KEY, KeyLength);
                 int32 err;
 
                 OSCL_TRY(err, ((PVMFOMXDecPort*)iOutPort)->pvmiSetPortFormatSpecificInfoSync(yuvFsiMemfrag, KvpKey););
@@ -1617,7 +1616,7 @@ bool PVMFOMXVideoDecNode::QueueOutputBuffer(OsclSharedPtr<PVMFMediaDataImpl> &me
                     if (err != OsclErrNone)
                     {
                         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG,
-                                        (0, "PVMFOMXVideoDecNode::HandlePortReEnable - Problem to set FSI"));
+                                        (0, "PVMFOMXVideoDecNode::QueueOutputFrame - Problem to set FSI"));
                     }
 
                     alloc.deallocate((OsclAny*)(KvpKey));
