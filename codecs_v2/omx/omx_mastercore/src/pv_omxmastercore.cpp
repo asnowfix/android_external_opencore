@@ -1054,7 +1054,10 @@ OSCL_EXPORT_REF OMX_BOOL OMX_MasterConfigParser(
             }
 
             OMX_U32 index = pOMXMasterRegistry[ii].OMXCoreIndex;
-            if (pInterface[index]->GetpOMXConfigParser() == NULL)
+            if ((pInterface[index]->GetpOMXConfigParser() == NULL) ||
+                (0 == oscl_strncmp(((OMXConfigParserInputs*)aInputParameters)->cComponentRole,
+                                    (OMX_STRING)"audio_decoder.aac",
+                                    oscl_strlen("audio_decoder.aac"))))
             {
                 //The OMX core does not have config parser - use PV config parser
                 Status = PV_OMXConfigParser(aInputParameters, aOutputParameters);
