@@ -58,7 +58,12 @@ OSCL_EXPORT_REF AndroidSurfaceOutput::AndroidSurfaceOutput() :
     iFirstFrameLatencyStart = 0;
     property_get("persist.debug.pv.statistics", value, "0");
     if(atoi(value)) mStatistics = true;
-    mNumberOfFramesToHold = 1;
+    property_get("ro.product.device",value,"0");
+    if(strcmp("msm7627_surf",value) == 0 || strcmp("msm7627_ffa",value) == 0 ||
+       strcmp("msm7625_surf",value) == 0 || strcmp("msm7625_ffa",value) == 0)
+        mNumberOfFramesToHold = 1;
+    else
+        mNumberOfFramesToHold = 2;
 }
 
 status_t AndroidSurfaceOutput::set(PVPlayer* pvPlayer, const sp<ISurface>& surface, bool emulation)
