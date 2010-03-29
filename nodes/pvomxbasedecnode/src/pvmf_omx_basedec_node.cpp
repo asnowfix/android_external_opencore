@@ -4153,6 +4153,17 @@ void PVMFOMXBaseDecNode::DoPrepare(PVMFOMXBaseDecNodeCommand& aCmd)
                         }
                         else
 #endif
+
+#ifdef USE_HW_AAC_DEC
+                        if ((0 == oscl_strncmp(aInputParameters.cComponentName, "OMX.PV.aacdec", PV_OMX_MAX_COMPONENT_NAME_LENGTH))
+                             && (format == PVMF_MIME_ADIF))
+                        {
+                            PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG, 
+                                            (0, "%s::DoPrepare(): SW Decoder (%s) does not support ADIF format, try another component", iName.Str(), aInputParameters.cComponentName));
+                            continue;
+                        }
+#endif
+
                             // try to create component
                             err = OMX_MasterGetHandle(&iOMXDecoder, (OMX_STRING) aInputParameters.cComponentName, (OMX_PTR) this, (OMX_CALLBACKTYPE *) & iCallbacks, bHWAccelerated);
                         // if successful, no need to continue
