@@ -320,6 +320,7 @@ class PlayerDriver :
     void PausePosition();
     bool                    mStatistics;
     nsecs_t                 iFFLS; //First Frame Latency start
+    bool                    mIsPausing;
 };
 
 PlayerDriver::PlayerDriver(PVPlayer* pvPlayer) :
@@ -336,7 +337,8 @@ PlayerDriver::PlayerDriver(PVPlayer* pvPlayer) :
         mIsLiveStreaming(false),
         mEmulation(false),
         mContentLengthKnown(false),
-        mLastBufferingLog(0)
+        mLastBufferingLog(0),
+        mIsPausing(false)
 {
     LOGV("constructor");
     mSyncSem = new OsclSemaphore();
@@ -907,7 +909,7 @@ void PlayerDriver::handleStart(PlayerStart* command)
     // if we are paused, just resume
     PVPlayerState state;
     if (mPlayer->GetPVPlayerStateSync(state) == PVMFSuccess
-        && (state == PVP_STATE_PAUSED)) {
+        && (state == PVP_STATE_PAUSED) || mIsPausing) {
         if (mEndOfData) {
             // if we are at the end, seek to the beginning first
             mEndOfData = false;
@@ -921,6 +923,7 @@ void PlayerDriver::handleStart(PlayerStart* command)
         }
         OSCL_TRY(error, mPlayer->Resume(command));
         OSCL_FIRST_CATCH_ANY(error, commandFailed(command));
+        mIsPausing = false;
     } else {
         OSCL_TRY(error, mPlayer->Start(command));
         OSCL_FIRST_CATCH_ANY(error, commandFailed(command));
@@ -957,6 +960,8 @@ void PlayerDriver::handleSeek(PlayerSeek* command)
     if ((state == PVP_STATE_PREPARED) && (!mVideoOutputMIO)) {
         LOGE("Seek is called in the prepared state, hence put the player to Pause state");
         mPlayer->Pause(NULL);
+
+        mIsPausing = true;
     }
 
     mEndOfData = false;
