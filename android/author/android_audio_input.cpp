@@ -1240,17 +1240,17 @@ int AndroidAudioInput::audin_thread_func() {
     else if (iAudioFormatType == android::AudioSystem::AMR_NB)
     {
       nFrameSize = 32;     // Full rate frame size
-      kBufferSize = 1280;
+      kBufferSize = 320;
     }
     else if (iAudioFormatType == android::AudioSystem::EVRC)
     {
       nFrameSize = 23; // Full rate frame size
-      kBufferSize = 1150;
+      kBufferSize = 230;
     }
     else if (iAudioFormatType == android::AudioSystem::QCELP)
     {
       nFrameSize = 35; // Full rate frame size
-      kBufferSize = 1050;
+      kBufferSize = 350;
     }
     else if (iAudioFormatType == android::AudioSystem::AAC)
     {
@@ -1319,7 +1319,10 @@ int AndroidAudioInput::audin_thread_func() {
 
             if (iFirstFrameReceived == false) {
                 iFirstFrameReceived = true;
+            }
 
+            if (iAudioFormatType == android::AudioSystem::PCM_16_BIT)
+            {
                 // Get the AudioRecord latency and
                 // get the system clock at this point
                 // The difference in 2 will give the actual time
