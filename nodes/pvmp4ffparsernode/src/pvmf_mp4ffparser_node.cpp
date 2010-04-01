@@ -4976,7 +4976,14 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
         }
         else
         {
-            aTrackPortInfo.iMediaData->setDuration(duration_msec);
+            // In cases where there are B or P frames in the stream, the
+            // timestamps are not in order. These duration values causes
+            // problems in media output node later on. We'll ignore the
+            // duration of these frames if the are not in order.
+            if(timestamp_next < timestamp)
+                aTrackPortInfo.iMediaData->setDuration(0);
+            else
+                aTrackPortInfo.iMediaData->setDuration(duration_msec);
         }
         // increment media data sequence number
         aTrackPortInfo.iSeqNum++;
