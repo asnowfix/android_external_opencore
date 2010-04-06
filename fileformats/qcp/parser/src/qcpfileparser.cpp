@@ -312,6 +312,8 @@ int32 QcpBitstreamObject::parseQCPHeader()
                 oscl_memcpy(vrat_chunk, &pBuf[cur_pos], QCP_VRAT_CHUNK_LENGTH);
                 cur_pos +=  QCP_VRAT_CHUNK_LENGTH;
             }
+            else
+                cur_pos +=  QCP_VRAT_CHUNK_LENGTH;
 
             /******* End of QCP header Parsing *******/
 
