@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,8 +94,11 @@ OSCL_EXPORT_REF bool PVMFOMXDecPort::IsFormatSupported(PVMFFormatType aFmt)
                        (aFmt == PVMF_MIME_AMR) ||
                        (aFmt == PVMF_MIME_AMRWB_IETF) ||
                        (aFmt == PVMF_MIME_AMRWB) ||
+                       (aFmt == PVMF_MIME_AMRWBP_IETF) ||
                        (aFmt == PVMF_MIME_MP3) ||
-                       (aFmt == PVMF_MIME_WMA)
+                       (aFmt == PVMF_MIME_WMA) ||
+                       (aFmt == PVMF_MIME_QCELP) ||
+                       (aFmt == PVMF_MIME_EVRC)
                       );
     }
 
@@ -250,18 +254,27 @@ OSCL_EXPORT_REF void PVMFOMXDecPort::setParametersSync(PvmiMIOSession aSession,
 {
 
     // if port connect needs format specific info
-    if (aParameters && pv_mime_strcmp(aParameters->key, PVMF_FORMAT_SPECIFIC_INFO_KEY) == 0)
+    if (aParameters)
     {
-        if (iTrackConfig != NULL)
+        if (pv_mime_strcmp(aParameters->key, PVMF_FORMAT_SPECIFIC_INFO_KEY) == 0)
         {
-            OSCL_FREE(iTrackConfig);
-            iTrackConfigSize = 0;
+            if (iTrackConfig != NULL)
+            {
+                OSCL_FREE(iTrackConfig);
+                iTrackConfigSize = 0;
+            }
+            iTrackConfigSize = aParameters->capacity;
+            iTrackConfig = (uint8*)(OSCL_MALLOC(sizeof(uint8) * iTrackConfigSize));
+            oscl_memcpy(iTrackConfig, aParameters->value.key_specific_value, iTrackConfigSize);
+            return;
         }
-        iTrackConfigSize = aParameters->capacity;
-        iTrackConfig = (uint8*)(OSCL_MALLOC(sizeof(uint8) * iTrackConfigSize));
-        oscl_memcpy(iTrackConfig, aParameters->value.key_specific_value, iTrackConfigSize);
-        return;
+        else if (iFormat == PVMF_MIME_H2631998 || iFormat == PVMF_MIME_H2632000)
+        {
+            iOMXNode->setParametersSync(aSession, aParameters, num_elements, aRet_kvp);
+            return;
+        }
     }
+
     // call the base class function
     PvmiCapabilityAndConfigPortFormatImpl::setParametersSync(aSession, aParameters, num_elements, aRet_kvp);
 

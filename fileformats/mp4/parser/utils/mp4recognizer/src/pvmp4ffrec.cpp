@@ -157,10 +157,10 @@ OSCL_EXPORT_REF bool MP4FileRecognizer::IsMP4File(PVMFCPMPluginAccessInterfaceFa
 
     uint32 fileSize;
     AtomUtils::getCurrentFileSize(fp, fileSize);
-    fp->_fileSize = (int32)fileSize;
-    int32 fpos = AtomUtils::getCurrentFilePosition(fp);
+    fp->_fileSize = fileSize;
+    uint32 fpos = AtomUtils::getCurrentFilePosition(fp);
 
-    while (fpos < (int32)fileSize)
+    while (fpos < fileSize)
     {
         uint32 atomType = UNKNOWN_ATOM;
         uint32 atomSize = 0;

@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +52,10 @@
 
 #ifndef CHUNKOFFSETATOM_H_INCLUDED
 #include "chunkoffsetatom.h"
+#endif
+
+#ifndef CHUNKLARGEOFFSETATOM_H_INCLUDED
+#include "chunklargeoffsetatom.h"
 #endif
 
 #ifndef SAMPLETOCHUNKATOM_H_INCLUDED
@@ -592,6 +597,28 @@ class SampleTableAtom : public Atom
         OSCL_wStackString<16> _defaultMimeType;
         uint32 _currChunkOffset;
 
+    public:
+        int32 getNumQCELPFramesPerSample()
+        {
+            return _numQCELPFramesPerSample;
+        }
+
+        int32 getNumEVRCFramesPerSample()
+        {
+            return _numEVRCFramesPerSample;
+        }
+
+        uint32 getNumReadKeyFrames()
+        {
+            return _numReadKeyFrames;
+        }
+
+    private:
+        int32 _numQCELPFramesPerSample;
+        int32 _numEVRCFramesPerSample;
+        ChunkLargeOffsetAtom  *_pchunkLargeOffsetAtom;
+        uint32 chunk_large_offset_exists;
+        int32 _numReadKeyFrames;
 };
 
 #endif // SAMPLETABLEATOM_H_INCLUDED

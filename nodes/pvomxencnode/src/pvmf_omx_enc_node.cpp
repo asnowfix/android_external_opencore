@@ -32,6 +32,7 @@
 #include "OMX_Core.h"
 #include "pvmf_omx_enc_callbacks.h"     //used for thin AO in encoder's callbacks
 #include "pv_omxcore.h"
+#include <cutils/properties.h>
 
 #define CONFIG_SIZE_AND_VERSION(param)                  \
     param.nSize=sizeof(param);                          \
@@ -889,7 +890,7 @@ PVMFOMXEncNode::PVMFOMXEncNode(int32 aPriority) :
     iVideoEncodeParam.iNoCurrentSkip = false;
     iVideoEncodeParam.iNoFrameSkip = false;
     iVideoEncodeParam.iClipDuration = 0;
-    iVideoEncodeParam.iProfileLevel = EI_CORE_LEVEL2;
+    iVideoEncodeParam.iProfileLevel = EI_SIMPLE_LEVEL2;
     /////////////////AVC SPECIFIC///////////////////////////
     iVideoEncodeParam.iEncMode = EI_ENCMODE_RECORDER;
     iVideoEncodeParam.iAVCProfile = EI_PROFILE_BASELINE;
@@ -1205,6 +1206,7 @@ void PVMFOMXEncNode::Run()
 
             PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
                             (0, "PVMFOMXEncNode-%s::Run(): Flush pending:  Changing Component State Executing->Idle or Pause->Idle", iNodeTypeId));
+            if(iOutPort) iOutPort->ClearMsgQueues();
 
             err = OMX_SendCommand(iOMXEncoder, OMX_CommandStateSet, OMX_StateIdle, NULL);
             if (err != OMX_ErrorNone)
@@ -2285,6 +2287,10 @@ bool PVMFOMXEncNode::NegotiateVideoComponentParameters()
         }
     }
 
+    /* This is a dummy allocator object, to get the PMem buffers infomation.
+       Set it back to NULL as the required informaion is received */
+    ipFixedSizeBufferAlloc = NULL;
+
     // set the number of input buffer
     iParamPort.nBufferCountActual = iNumInputBuffers;
 
@@ -2539,10 +2545,16 @@ bool PVMFOMXEncNode::SetMP4EncoderParameters()
     Mpeg4Type.nIDCVLCThreshold = 0;
     Mpeg4Type.bACPred = OMX_TRUE;
     Mpeg4Type.nMaxPacketSize = iVideoEncodeParam.iPacketSize;
-    Mpeg4Type.nTimeIncRes = 1000; // (in relation to (should be higher than) frame rate )
+    Mpeg4Type.nTimeIncRes = 60; // (in relation to (should be higher than) frame rate )
     Mpeg4Type.nHeaderExtension = 0;
     Mpeg4Type.bReversibleVLC = ((iVideoEncodeParam.iRVLCEnable == true) ? OMX_TRUE : OMX_FALSE);
 
+    // workaround for 7x30 and 8250, do not set profile and level :
+    // This is to prevent overwriting profile/level value set by the component
+    char value[PROPERTY_VALUE_MAX];
+    property_get("ro.product.device", value, "0");
+    if (strcmp("msm7627_surf", value) == 0)
+    {
     switch (iVideoEncodeParam.iProfileLevel)
     {
 
@@ -2605,8 +2617,8 @@ bool PVMFOMXEncNode::SetMP4EncoderParameters()
             Mpeg4Type.eProfile = OMX_VIDEO_MPEG4ProfileCoreScalable;
             Mpeg4Type.eLevel = OMX_VIDEO_MPEG4Level3;
             break;
-
     }
+    } // end workaround for 7x30
 
     Err = OMX_SetParameter(iOMXEncoder, OMX_IndexParamVideoMpeg4, &Mpeg4Type);
     if (OMX_ErrorNone != Err)
@@ -2801,11 +2813,6 @@ bool PVMFOMXEncNode::SetH263EncoderParameters()
     H263Type.nBFrames = 0;
     H263Type.eProfile = OMX_VIDEO_H263ProfileBaseline;
 
-    // the supported level is up to OMX_VIDEO_H263Level45
-    if (H263Type.eLevel > OMX_VIDEO_H263Level45)
-    {
-        H263Type.eLevel = OMX_VIDEO_H263Level45;
-    }
     H263Type.bPLUSPTYPEAllowed = OMX_FALSE;
     H263Type.bForceRoundingTypeToZero = OMX_FALSE;
     H263Type.nPictureHeaderRepetition = 0;
@@ -3010,8 +3017,9 @@ bool PVMFOMXEncNode::SetH264EncoderParameters()
     H264Type.bEnableFMO = OMX_FALSE;
     H264Type.bEnableASO = OMX_FALSE;
     H264Type.bEnableRS = OMX_FALSE;
-    H264Type.eProfile = OMX_VIDEO_AVCProfileBaseline;
-    H264Type.eLevel = OMX_VIDEO_AVCLevel1b;
+   //Component is setting level and profile correctly PV should not overwrite these values
+//  H264Type.eProfile = OMX_VIDEO_AVCProfileBaseline;
+//  H264Type.eLevel = OMX_VIDEO_AVCLevel1b;
     H264Type.bFrameMBsOnly = OMX_TRUE;
     H264Type.bMBAFF = OMX_FALSE;
     H264Type.bEntropyCodingCABAC = OMX_FALSE;
@@ -3991,7 +3999,7 @@ bool PVMFOMXEncNode::SendInputBufferToOMXComponent()
                 iDataIn->getFormatSpecificInfo(fsifrag);
                 if(sizeof(OsclAny*) != fsifrag.getMemFrag().len )
                 {
-                    PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_ERR,
+                    PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
                             (0, "PVMFOMXEncNode-%s::SendInputBufferToOMXComponent() - ERROR buffer size %d", iNodeTypeId, fsifrag.getMemFrag().len ));
                     return false;
                 }
@@ -4020,11 +4028,24 @@ bool PVMFOMXEncNode::SendInputBufferToOMXComponent()
             // can the remaining fragment fit into the buffer?
             if (iFragmentSizeRemainingToCopy <= (input_buf->pBufHdr->nAllocLen))
             {
-
+             if (iOMXComponentSupportsExternalInputBufferAlloc)
+             {//TODO: check whether addRef() is needed for fsi
+                OsclRefCounterMemFrag fsifrag;
+                iDataIn->getFormatSpecificInfo(fsifrag);
+                if(sizeof(OsclAny*) != fsifrag.getMemFrag().len )
+                {
+                    PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
+                            (0, "PVMFOMXEncNode-%s::SendInputBufferToOMXComponent() - ERROR buffer size %d", iNodeTypeId, fsifrag.getMemFrag().len ));
+                    return false;
+                }
+                oscl_memcpy(&(input_buf->pBufHdr->pPlatformPrivate), fsifrag.getMemFragPtr(), sizeof(OsclAny*) ); // restore ptr data from fsi
+            }
+            else
+            {
                 oscl_memcpy(input_buf->pBufHdr->pBuffer,
                             (void *)((uint8 *)frag.getMemFragPtr() + iCopyPosition),
                             iFragmentSizeRemainingToCopy);
-
+            }
                 input_buf->pBufHdr->nFilledLen = iFragmentSizeRemainingToCopy;
 
                 PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
@@ -4168,7 +4189,7 @@ bool PVMFOMXEncNode::CreateOutMemPool(uint32 num_buffers)
     }
 
     int32 leavecode = 0;
-    OSCL_TRY(leavecode, iOutBufMemoryPool = OSCL_NEW(OsclMemPoolFixedChunkAllocator, (num_buffers)););
+    OSCL_TRY(leavecode, iOutBufMemoryPool = ThreadSafeMemPoolFixedChunkAllocator::Create((num_buffers)););
     if (leavecode || iOutBufMemoryPool == NULL)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger,
@@ -4310,6 +4331,38 @@ bool PVMFOMXEncNode::ProvideBuffersToComponent(OsclMemPoolFixedChunkAllocator *a
     uint32 ii = 0;
     OMX_ERRORTYPE err = OMX_ErrorNone;
     OsclAny **ctrl_struct_ptr = aIsThisInputBuffer ? in_ctrl_struct_ptr : out_ctrl_struct_ptr;
+    uint8 *pPmemBufBasePtr;
+    CameraPmemInfo *pPmemInfo = NULL;
+
+    if (aIsThisInputBuffer && aUseBufferOK) {
+        PvmiKvp* kvp = NULL;
+        int numKvp = 0;
+        int iIndex, numPmemBuf, pMemFd, pMemBufSize;
+        PvmiKeyType aIdentifier = (PvmiKeyType)PVMF_PMEM_BUFFER_INFO_KEY;
+        int32 err, err1;
+        OSCL_TRY(err, ((PVMFOMXEncPort*)iInPort)->pvmiGetBufferAllocatorSpecificInfoSync(aIdentifier, kvp, numKvp););
+
+        if (numKvp == PVMF_NUM_PMEM_BUFFER_INFO_PARAMS) {
+            numPmemBuf      = kvp[0].value.int32_value;
+            pMemFd          = kvp[1].value.int32_value;
+            pPmemBufBasePtr = kvp[2].value.pUint8_value;
+            pMemBufSize     = kvp[3].value.int32_value;
+
+            LOGV("numPmemBuf = %d pMemFd = %d pMemBufSize = %d",numPmemBuf,pMemFd,pMemBufSize);
+            pPmemInfo = new CameraPmemInfo[numPmemBuf];
+
+            if(NULL == pPmemInfo) {
+                LOGE("Failed to allocate the camera pmem info buffer array. numPmemBuf %d",numPmemBuf);
+                return PVMFFailure;
+            } else {
+                for(iIndex = 0; iIndex < numPmemBuf; iIndex++) {
+                    pPmemInfo[iIndex].pmem_fd = pMemFd;
+                    pPmemInfo[iIndex].offset  = iIndex * pMemBufSize;
+                }
+            }
+        }
+        OSCL_TRY(err1, ((PVMFOMXEncPort*)iInPort)->releaseParametersSync(kvp, numKvp););
+    }
 
     // Now, go through all buffers and tell component to
     // either use a buffer, or to allocate its own buffer
@@ -4357,22 +4410,31 @@ bool PVMFOMXEncNode::ProvideBuffersToComponent(OsclMemPoolFixedChunkAllocator *a
             // in case of input buffers, initialize also MediaDataSharedPtr structure
             if (aIsThisInputBuffer)
             {
+                OMX_PTR pAppPrivate;
+                uint8  *pBufPtr;
+                if(pPmemInfo != NULL){
+                    pAppPrivate = (OMX_PTR)&pPmemInfo[ii];
+                    LOGV("pAppPrivate = %p  fd = %d offset = %d",&pPmemInfo[ii], pPmemInfo[ii].pmem_fd, pPmemInfo[ii].offset);
+                    pBufPtr = pPmemBufBasePtr + pPmemInfo[ii].offset;
+                } else {
+                    pAppPrivate = (OMX_PTR)ctrl_struct_ptr[ii];
+                    // advance ptr to skip the structure
+                    pB += oscl_mem_aligned_size(sizeof(InputBufCtrlStruct));
+                    pBufPtr = pB;
+                }
 
                 InputBufCtrlStruct *temp = (InputBufCtrlStruct *) ctrl_struct_ptr[ii];
                 oscl_memset(&(temp->pMediaData), 0, sizeof(PVMFSharedMediaDataPtr));
                 temp->pMediaData = PVMFSharedMediaDataPtr(NULL, NULL);
 
-                // advance ptr to skip the structure
-                pB += oscl_mem_aligned_size(sizeof(InputBufCtrlStruct));
-
                 err = OMX_UseBuffer(iOMXEncoder,    // hComponent
                                     &(temp->pBufHdr),       // address where ptr to buffer header will be stored
                                     aPortIndex,             // port index (for port for which buffer is provided)
-                                    ctrl_struct_ptr[ii],    // App. private data = pointer to beginning of allocated data
+                                    pAppPrivate,    // App. private data = pointer to beginning of allocated data
                                     //              to have a context when component returns with a callback (i.e. to know
                                     //              what to free etc.
                                     (OMX_U32)aActualBufferSize,     // buffer size
-                                    pB);                        // buffer data ptr
+                                    pBufPtr);                       // buffer data ptr
 
                 in_buff_hdr_ptr[ii] = temp->pBufHdr;
 
@@ -4456,6 +4518,10 @@ bool PVMFOMXEncNode::ProvideBuffersToComponent(OsclMemPoolFixedChunkAllocator *a
             return false;
         }
 
+    }
+
+    if(pPmemInfo) {
+        delete pPmemInfo;
     }
 
     for (ii = 0; ii < aNumBuffers; ii++)
@@ -5050,7 +5116,7 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
     // address of the mempool buffer (so that it can be released)
     OsclAny *pContext = (OsclAny*) aBuffer->pAppPrivate;
 
-
+    uint32 nal_size= 0;
     // check for EOS flag
     if ((aBuffer->nFlags & OMX_BUFFERFLAG_EOS))
     {
@@ -5069,7 +5135,7 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
         uint8* pData = (uint8*)aBuffer->pBuffer + aBuffer->nOffset;
         uint8* pTemp;
         uint32 size = aBuffer->nFilledLen;
-        if (AVCAnnexBGetNALUnit(pData, &pTemp, (int32*)&size, true))
+        if (AVCAnnexBGetNALUnit(pData, &pTemp, (int32*)&size, false))
         {
             iFirstNALStartCodeSize = (uint32)pTemp - (uint32)pData;
         }
@@ -5077,6 +5143,7 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
         {
             iFirstNALStartCodeSize = 0;
         }
+        nal_size = size;
     }
 
     /* the case in which a buffer simply containing a start code is sent */
@@ -5210,17 +5277,39 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
                 if (aBuffer->nFilledLen <= (capacity - length))
                 {
                     iSPSs[iNumSPSs].ptr = destptr;
-                    iSPSs[iNumSPSs++].len = aBuffer->nFilledLen;
+					iSPSs[iNumSPSs++].len = nal_size;//aBuffer->nFilledLen;
 
-                    oscl_memcpy(destptr, pBufdata, aBuffer->nFilledLen); // copy SPS into iParamSet memfragment
-                    length += aBuffer->nFilledLen;
+					oscl_memcpy(destptr, pBufdata, nal_size); // copy SPS into iParamSet memfragment
+					length += nal_size;
                     iParamSet.getMemFrag().len = length; // update length
+                    destptr += nal_size;
                 }
 
+				uint8* pData = (uint8*)aBuffer->pBuffer + nal_size +iFirstNALStartCodeSize;
+				uint32 size = aBuffer->nFilledLen -(nal_size +iFirstNALStartCodeSize) ;
+				AVCAnnexBGetNALUnit(pData, &bitstream, (int32*)&size, false) ;		
+				nal_size = size;	
+				nal_type = bitstream[0] & 0x1F;
+				if (nal_type == 0x08) // PPS type NAL
+				{
+										// can the PPS fit into the buffer?
+					if (aBuffer->nFilledLen <= (capacity - length))
+					{
+                                                
+						iPPSs[iNumPPSs].ptr = destptr;
+						iPPSs[iNumPPSs++].len = nal_size;//aBuffer->nFilledLen;
+
+						oscl_memcpy(destptr, bitstream, nal_size); // copy PPS into iParamSet memfragment
+						length += nal_size;//aBuffer->nFilledLen;
+						iParamSet.getMemFrag().len = length; // update length
+
+
+					}
 
                 // release the OMX buffer
                 iOutBufMemoryPool->deallocate(pContext);
                 return OMX_ErrorNone;
+            }
             }
             else if (nal_type == 0x08) // PPS type NAL
             {
@@ -5364,8 +5453,6 @@ OMX_ERRORTYPE PVMFOMXEncNode::FillBufferDoneProcessing(OMX_OUT OMX_HANDLETYPE aC
                 //check for END OF FRAME FLAG
                 iEndOfFrameFlagOut = (aBuffer->nFlags & OMX_BUFFERFLAG_ENDOFFRAME);
                 iBufferLenOut = aBuffer->nFilledLen;
-
-
             }
             // if there's a problem queuing output buffer, MediaDataCurr will expire at end of scope and
             // release buffer back to the pool, (this should not be the case)
@@ -5570,7 +5657,7 @@ OsclSharedPtr<PVMFMediaDataImpl> PVMFOMXEncNode::WrapOutputBuffer(uint8 *pData, 
 {
     // wrap output buffer into a mediadataimpl
     uint32 aligned_cleanup_size = oscl_mem_aligned_size(sizeof(PVOMXEncBufferSharedPtrWrapperCombinedCleanupDA));
-    uint32 aligned_refcnt_size = oscl_mem_aligned_size(sizeof(OsclRefCounterDA));
+    uint32 aligned_refcnt_size = oscl_mem_aligned_size(sizeof(OsclRefCounterMTDA<OsclMutex>));
     uint8 *my_ptr = (uint8*) oscl_malloc(aligned_cleanup_size + aligned_refcnt_size);
 
     if (my_ptr == NULL)
@@ -5584,14 +5671,14 @@ OsclSharedPtr<PVMFMediaDataImpl> PVMFOMXEncNode::WrapOutputBuffer(uint8 *pData, 
         OSCL_PLACEMENT_NEW(my_ptr + aligned_refcnt_size, PVOMXEncBufferSharedPtrWrapperCombinedCleanupDA(iOutBufMemoryPool, pContext));
 
     // create the ref counter after the cleanup object (refcount is set to 1 at creation)
-    OsclRefCounterDA *my_refcnt;
+	OsclRefCounterMTDA<OsclMutex> *my_refcnt;
     PVMFMediaDataImpl* media_data_ptr;
 
     if (iOMXComponentUsesFullAVCFrames && iNumNALs > 0)
     {
         uint32 ii;
         media_data_ptr = OSCL_NEW(PVMFMediaFragGroup<OsclMemAllocator>, (iNumNALs));
-        my_refcnt = OSCL_PLACEMENT_NEW(my_ptr, OsclRefCounterDA(media_data_ptr, cleanup_ptr));
+		my_refcnt = OSCL_PLACEMENT_NEW(my_ptr, OsclRefCounterMTDA<OsclMutex>(media_data_ptr, cleanup_ptr));
 
         // loop through and assign a create a media fragment for each NAL
         for (ii = 0; ii < iNumNALs; ii++)
@@ -5622,7 +5709,7 @@ OsclSharedPtr<PVMFMediaDataImpl> PVMFOMXEncNode::WrapOutputBuffer(uint8 *pData, 
     else
     {
         media_data_ptr = OSCL_NEW(PVMFMediaFragGroup<OsclMemAllocator>, (1));
-        my_refcnt = OSCL_PLACEMENT_NEW(my_ptr, OsclRefCounterDA(media_data_ptr, cleanup_ptr));
+		my_refcnt = OSCL_PLACEMENT_NEW(my_ptr, OsclRefCounterMTDA<OsclMutex>(media_data_ptr, cleanup_ptr));
 
         OsclMemoryFragment memFrag;
 
@@ -5630,6 +5717,7 @@ OsclSharedPtr<PVMFMediaDataImpl> PVMFOMXEncNode::WrapOutputBuffer(uint8 *pData, 
         {
             // skip start code
             pData += iFirstNALStartCodeSize;
+            aDataLen -= iFirstNALStartCodeSize;
         }
 
         memFrag.ptr = pData;

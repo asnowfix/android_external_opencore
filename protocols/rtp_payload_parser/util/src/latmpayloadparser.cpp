@@ -29,7 +29,8 @@
 /* Mempool size of latm parser should be at least 1 more than OMX component
    mempool size, which is 10 */
 #define PVLATMPARSER_MEDIADATA_POOLNUM      12
-#define PVLATMPARSER_LATMDATA_CHUNKSIZE     1536*10 // 10 maximum aac frames
+#define PVLATMPARSER_LATMDATA_FRAGMENTSIZE  1536
+#define PVLATMPARSER_LATMDATA_CHUNKSIZE     10*PVLATMPARSER_LATMDATA_FRAGMENTSIZE // 10 maximum aac frames
 #define PVLATMPARSER_MEDIADATA_CHUNKSIZE    128
 
 static uint32 BufferShowBits(uint8 *inbuf, uint32 pos1, uint32 pos2);
@@ -75,6 +76,12 @@ OSCL_EXPORT_REF PV_LATM_Parser::PV_LATM_Parser() :
     maxFrameSize = currSize; // currently allows 4 max length case AAC frames
 
     iOsclErrorTrapImp = OsclErrorTrap::GetErrorTrapImp();
+
+#ifdef LATM_PARSE_MULTIPLE_FRAGMENTS
+    iMediaDataGroupImplMemPool = OSCL_NEW(OsclMemPoolFixedChunkAllocator, (PVLATMPARSER_MEDIADATA_POOLNUM));
+    iMediaDataGroupAlloc = OSCL_NEW(PVMFMediaFragGroupCombinedAlloc<OsclMemAllocator>, (PVLATMPARSER_MEDIADATA_POOLNUM, PVLATMPARSER_LATMDATA_FRAGMENTSIZE, iMediaDataGroupImplMemPool));
+    iMediaDataGroupAlloc->create();
+#endif
 }
 
 
@@ -97,6 +104,10 @@ OSCL_EXPORT_REF PV_LATM_Parser::~PV_LATM_Parser()
     }
 
     mediaDataOut.Unbind();
+#ifdef LATM_PARSE_MULTIPLE_FRAGMENTS
+    iMediaDataGroupAlloc->removeRef();
+    iMediaDataGroupImplMemPool->removeRef();
+#endif
 }
 
 
@@ -121,6 +132,7 @@ OSCL_EXPORT_REF uint8 PV_LATM_Parser::compose(PVMFSharedMediaDataPtr& mediaDataI
 
     int errcode = 0;
     OsclSharedPtr<PVMFMediaDataImpl> mediaDataImpl;
+#ifndef LATM_PARSE_MULTIPLE_FRAGMENTS
     OSCL_TRY_NO_TLS(iOsclErrorTrapImp, errcode, mediaDataImpl = iMediaDataSimpleAlloc.allocate((uint32)memFragIn.getMemFrag().len));
     OSCL_FIRST_CATCH_ANY(errcode, return FRAME_OUTPUTNOTAVAILABLE);
 
@@ -130,6 +142,10 @@ OSCL_EXPORT_REF uint8 PV_LATM_Parser::compose(PVMFSharedMediaDataPtr& mediaDataI
 
     OsclRefCounterMemFrag memFragOut;
     mediaDataOut->getMediaFragment(0, memFragOut);
+#else
+    OSCL_TRY_NO_TLS(iOsclErrorTrapImp, errcode, mediaDataImpl = iMediaDataGroupAlloc->allocate((uint32)memFragIn.getMemFrag().len));
+    OSCL_FIRST_CATCH_ANY(errcode, return FRAME_OUTPUTNOTAVAILABLE);
+#endif
 
     /*
      *  Latch for very first packet, sequence number is not established yet.
@@ -153,67 +169,48 @@ OSCL_EXPORT_REF uint8 PV_LATM_Parser::compose(PVMFSharedMediaDataPtr& mediaDataI
     last_sequence_num = seqNum;
     last_mbit = mediaDataIn->getMarkerInfo();
 
-    if (dropFrames)
+    if (dropFrames && mediaDataIn->getMarkerInfo())
     {
-        if (mediaDataIn->getMarkerInfo())
-        {
-            /*
-             *  try to recover packet as sequencing was broken, new packet could be valid
-             *  it is possible that the received packet contains a complete audioMuxElement()
-             *  so try to retrieve it.
-             */
+        /*
+         *  try to recover packet as sequencing was broken, new packet could be valid
+         *  it is possible that the received packet contains a complete audioMuxElement()
+         *  so try to retrieve it.
+         */
 
-            dropFrames = false;
+        dropFrames = false;
+    }
+
+    if (dropFrames == false)
+    {
+#ifndef LATM_PARSE_MULTIPLE_FRAGMENTS
+        if (sMC->numSubFrames > 0 || (sMC->cpresent == 1 && ((*(uint8*)(memFragIn.getMemFrag().ptr)) &(0x80))))
+        {
+            // this is a less efficient version that must be used when you know an AudioMuxElement has
+            // more than one subFrame -- I also added the case where the StreamMuxConfig is inline
+            // The reason for this is that the StreamMuxConfig can be possibly large and there is no
+            // way to know its size without parsing it. (the problem is it can straddle an RTP boundary)
+            // it is less efficient because it composes the AudioMuxElement in a separate buffer (one
+            // oscl_memcpy() per rtp packet) then parses it (one oscl_memcpy() per audio frame to the output
+            // buffer (newpkt->outptr)) when it gets a whole AudioMuxElement.
+            // The function below does a oscl_memcpy() directly into the output buffer
+            // note, composeMultipleFrame will also work for the simple case in case there is another reason
+            // to have to use it..
+
+            retVal = composeMultipleFrame(mediaDataIn);
         }
         else
         {
-
-            /*
-             *  we are in the middle of a spread audioMuxElement(), or faulty rtp header
-             *  return error
-             */
-
-            framesize = 0;
-            frameNum = 0;
-            bytesRead = 0;
-            compositenumframes = 0;
-
-            /*
-             *  Drop frame as we are not certain if it is a valid frame
-             */
-            memFragOut.getMemFrag().len = 0;
-            mediaDataOut->setMediaFragFilledLen(0, 0);
-
-            firstBlock = true; // set for next call
-            return FRAME_ERROR;
+            // this is an efficient version that can be used when you know an AudioMuxElement has
+            // only one subFrame
+            retVal = composeSingleFrame(mediaDataIn);
         }
+
+#else
+        retVal = composeFrame(mediaDataIn, mediaDataImpl);
+#endif
     }
-
-
-    if (sMC->numSubFrames > 0 || (sMC->cpresent == 1 && ((*(uint8*)(memFragIn.getMemFrag().ptr)) &(0x80))))
-    {
-        // this is a less efficient version that must be used when you know an AudioMuxElement has
-        // more than one subFrame -- I also added the case where the StreamMuxConfig is inline
-        // The reason for this is that the StreamMuxConfig can be possibly large and there is no
-        // way to know its size without parsing it. (the problem is it can straddle an RTP boundary)
-        // it is less efficient because it composes the AudioMuxElement in a separate buffer (one
-        // oscl_memcpy() per rtp packet) then parses it (one oscl_memcpy() per audio frame to the output
-        // buffer (newpkt->outptr)) when it gets a whole AudioMuxElement.
-        // The function below does a oscl_memcpy() directly into the output buffer
-        // note, composeMultipleFrame will also work for the simple case in case there is another reason
-        // to have to use it..
-
-        retVal = composeMultipleFrame(mediaDataIn);
-    }
-    else
-    {
-        // this is an efficient version that can be used when you know an AudioMuxElement has
-        // only one subFrame
-        retVal = composeSingleFrame(mediaDataIn);
-    }
-
     // set this to drop frames in the future -- till we find another marker bit
-    if (retVal == FRAME_ERROR)
+    if (dropFrames || (retVal == FRAME_ERROR))
     {
         dropFrames = true;
 
@@ -223,11 +220,12 @@ OSCL_EXPORT_REF uint8 PV_LATM_Parser::compose(PVMFSharedMediaDataPtr& mediaDataI
         compositenumframes = 0;
 
         //changed
+#ifndef LATM_PARSE_MULTIPLE_FRAGMENTS
         memFragOut.getMemFrag().len = 0;
         mediaDataOut->setMediaFragFilledLen(0, 0);
+#endif
 
         firstBlock = true; // set for next call
-
     }
     return retVal;
 }
@@ -350,6 +348,9 @@ OSCL_EXPORT_REF uint8 PV_LATM_Parser::compose(uint8* aData, uint32 aDataLen, uin
     }
     return retVal;
 }
+
+
+#ifndef LATM_PARSE_MULTIPLE_FRAGMENTS
 /* ======================================================================== */
 /*  Function : composeSingleFrame()                                         */
 /*  Purpose  : parse AAC LATM payload                                       */
@@ -517,7 +518,6 @@ uint8 PV_LATM_Parser::composeSingleFrame(PVMFSharedMediaDataPtr& mediaDataIn)
 /* ======================================================================== */
 uint8 PV_LATM_Parser::composeMultipleFrame(PVMFSharedMediaDataPtr& mediaDataIn)
 {
-
     uint32 tmp;
     uint8 * myData;
     uint32 i;
@@ -618,9 +618,46 @@ uint8 PV_LATM_Parser::composeMultipleFrame(PVMFSharedMediaDataPtr& mediaDataIn)
         }
 
     }
+    return FRAME_COMPLETE;
+}
+#else
+uint8 PV_LATM_Parser::composeFrame(PVMFSharedMediaDataPtr& mediaDataIn, OsclSharedPtr<PVMFMediaDataImpl>& aMediaFragGroup)
+{
+    OsclRefCounterMemFrag memFragIn;
+    mediaDataIn->getMediaFragment(0, memFragIn);
+    OsclRefCounter* refCntIn = memFragIn.getRefCounter();
+
+    int32 pktsize = memFragIn.getMemFrag().len;
+    uint8 *myData = (uint8*)memFragIn.getMemFrag().ptr;
+
+    uint32 tmp;
+    uint32 i;
+    for (i = 0; i <= sMC->numSubFrames; i++)
+    {
+        framesize = 0;
+        do
+        {
+            tmp = *(myData);
+            framesize += tmp;
+        }
+        while (*(myData++) == 0xff);
+
+        OsclMemoryFragment memFrag;
+        memFrag.ptr = myData;
+        memFrag.len = framesize;
+        refCntIn->addRef();
+        OsclRefCounterMemFrag refCountMemFragOut(memFrag, refCntIn, 0);
+        aMediaFragGroup->appendMediaFragment(refCountMemFragOut);
+        myData += framesize;
+    }
+
+    mediaDataOut = PVMFMediaData::createMediaData(aMediaFragGroup, &iMediaDataMemPool);
+    mediaDataOut->setSeqNum(mediaDataIn->getSeqNum());
+    mediaDataOut->setTimestamp(mediaDataIn->getTimestamp());
 
     return FRAME_COMPLETE;
 }
+#endif
 
 ///////////////////////////////////Create a function to decode the StreamMuxConfig
 // note this function should ideally also get a reference to an object that holds the values

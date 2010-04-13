@@ -217,7 +217,6 @@ PVMFCommandId AndroidAudioOutput::DiscardData(PVMFTimestamp aTimestamp, const Os
     // and then call RunIfNotReady
     iOSSRequestQueueLock.Lock();
     for (int32 i = (iOSSRequestQueue.size() - 1); i >= 0; i--) {
-        if (iOSSRequestQueue[i].iTimestamp < aTimestamp) {
             audcmdid = iOSSRequestQueue[i].iCmdId;
             context = iOSSRequestQueue[i].iContext;
             timestamp = iOSSRequestQueue[i].iTimestamp;
@@ -230,12 +229,15 @@ PVMFCommandId AndroidAudioOutput::DiscardData(PVMFTimestamp aTimestamp, const Os
             iWriteResponseQueueLock.Lock();
             iWriteResponseQueue.push_back(resp);
             iWriteResponseQueueLock.Unlock();
-        }
     }
     LOGV("DiscardData data queued = %u, setting flush pending", iDataQueued);
     iFlushPending=true;
 
     iOSSRequestQueueLock.Unlock();
+
+    // wakeup the audio thread: There is a chance of audio thread waiting in pause 
+    // state and possibly with a partial buffer
+    iAudioThreadSem->Signal();
 
     if (sched)
         RunIfNotReady();
@@ -276,19 +278,20 @@ void AndroidAudioOutput::setParametersSync(PvmiMIOSession aSession, PvmiKvp* aPa
         while (iAudioThreadCreatedSem->Wait() != OsclProcStatus::SUCCESS_ERROR) 
            ;
 
-        if(OsclProcStatus::SUCCESS_ERROR == ret){
-            iAudioThreadCreatedAndMIOConfigured = true;
+        if(OsclProcStatus::SUCCESS_ERROR == ret && iAudioThreadCreatedAndMIOConfigured==true ){
             if(iObserver){
                 LOGV("event PVMFMIOConfigurationComplete to peer");
                 iObserver->ReportInfoEvent(PVMFMIOConfigurationComplete);
             }
         }
         else{
-            iAudioThreadCreatedAndMIOConfigured = false;
+	   if(iAudioThreadCreatedAndMIOConfigured==false)
+	   {
             if(iObserver){
                 LOGE("event PVMFErrResourceConfiguration to peer");
                 iObserver->ReportErrorEvent(PVMFErrResourceConfiguration);
             }
+	   }
         }
     }
     LOGV("AndroidAudioOutput setParametersSync out");
@@ -354,6 +357,8 @@ int AndroidAudioOutput::audout_thread_func()
 #endif
 
     if (iAudioNumChannelsValid == false || iAudioSamplingRateValid == false || iAudioFormat == PVMF_MIME_FORMAT_UNKNOWN) {
+        iAudioThreadCreatedAndMIOConfigured = false;
+        iAudioThreadCreatedSem->Signal();
         LOGE("channel count or sample rate is invalid");
         return -1;
     }
@@ -365,6 +370,7 @@ int AndroidAudioOutput::audout_thread_func()
     iAudioFormat = PVMF_MIME_FORMAT_UNKNOWN;
     if (ret != 0) {
         iAudioThreadCreatedAndMIOConfigured = false;
+        iAudioThreadCreatedSem->Signal();
         LOGE("Error creating AudioTrack");
         return -1;
     }
@@ -379,6 +385,7 @@ int AndroidAudioOutput::audout_thread_func()
     iActiveTiming->setFrameRate(msecsPerFrame);
     iActiveTiming->setDriverLatency(latency);
 
+    iAudioThreadCreatedAndMIOConfigured = true;
     iAudioThreadCreatedSem->Signal();
     // this must be set after iActiveTiming->setFrameRate to prevent race
     // condition in Run()
@@ -441,6 +448,20 @@ int AndroidAudioOutput::audout_thread_func()
             }
             state = PAUSED;
             if(!iExitAudioThread && !iReturnBuffers) {
+                if (iFlushPending) {
+                    LOGV("flush");
+                    mAudioSink->flush();
+                    iFlushPending = false;
+                    bytesAvailInBuffer = 0;
+                    iClockTimeOfWriting_ns = 0;
+                    // discard partial buffer and send response to MIO
+                    if (data && len) {
+                        LOGV("discard partial buffer and send response to MIO");
+                        sendResponse(cmdid, context, timestamp);
+                        data = 0;
+                        len = 0;
+                    }
+                }
                 LOGV("wait");
                 iAudioThreadSem->Wait();
                 LOGV("awake");

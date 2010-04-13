@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -268,7 +269,7 @@ OSCL_EXPORT_REF PVMFStatus PVMp4FFComposerPort::getParametersSync(PvmiMIOSession
     //identifier is a key and is assumed to be null terminated
     if (oscl_strcmp(identifier, INPUT_FORMATS_CAP_QUERY) == 0)
     {
-        num_parameter_elements = 8;
+        num_parameter_elements = 10;
         status = AllocateKvp(parameters, (PvmiKeyType)INPUT_FORMATS_VALTYPE, num_parameter_elements);
         if (status != PVMFSuccess)
         {
@@ -284,6 +285,8 @@ OSCL_EXPORT_REF PVMFStatus PVMp4FFComposerPort::getParametersSync(PvmiMIOSession
             parameters[5].value.pChar_value = (char*)PVMF_MIME_H264_VIDEO_MP4;
             parameters[6].value.pChar_value = (char*)PVMF_MIME_3GPP_TIMEDTEXT;
             parameters[7].value.pChar_value = (char*)PVMF_MIME_AMRWB_IETF;
+            parameters[8].value.pChar_value = (char*)PVMF_MIME_QCELP;
+            parameters[9].value.pChar_value = (char*)PVMF_MIME_EVRC;
         }
     }
     else if (oscl_strcmp(identifier, INPUT_FORMATS_CUR_QUERY) == 0)
@@ -606,6 +609,8 @@ PVMFStatus PVMp4FFComposerPort::VerifyAndSetParameter(PvmiKvp* aKvp, bool aSetPa
         if (pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_3GPP_TIMEDTEXT) == 0 ||
                 pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_AMR_IETF) == 0 ||
                 pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_AMRWB_IETF) == 0 ||
+                pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_QCELP) == 0 ||
+                pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_EVRC) == 0 ||
                 pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_H264_VIDEO_MP4) == 0 ||
                 pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_M4V) == 0 ||
                 pv_mime_strcmp(aKvp->value.pChar_value, PVMF_MIME_H2631998) == 0 ||
@@ -655,6 +660,8 @@ PVMFStatus PVMp4FFComposerPort::NegotiateInputSettings(PvmiCapabilityAndConfig* 
     if (pv_mime_strcmp(kvp->value.pChar_value, PVMF_MIME_3GPP_TIMEDTEXT) == 0 ||
             pv_mime_strcmp(kvp->value.pChar_value, PVMF_MIME_AMR_IETF) == 0 ||
             pv_mime_strcmp(kvp->value.pChar_value, PVMF_MIME_AMRWB_IETF) == 0 ||
+            pv_mime_strcmp(kvp->value.pChar_value, PVMF_MIME_QCELP) == 0 ||
+            pv_mime_strcmp(kvp->value.pChar_value, PVMF_MIME_EVRC) == 0 ||
             pv_mime_strcmp(kvp->value.pChar_value, PVMF_MIME_H264_VIDEO_MP4) == 0 ||
             pv_mime_strcmp(kvp->value.pChar_value, PVMF_MIME_M4V) == 0 ||
             pv_mime_strcmp(kvp->value.pChar_value, PVMF_MIME_H2631998) == 0 ||
@@ -703,6 +710,8 @@ PVMFStatus PVMp4FFComposerPort::GetInputParametersFromPeer(PvmiCapabilityAndConf
         }
         else if (iFormat == PVMF_MIME_AMR_IETF ||
                  iFormat == PVMF_MIME_AMRWB_IETF ||
+                 iFormat == PVMF_MIME_QCELP ||
+                 iFormat == PVMF_MIME_EVRC ||
                  iFormat == PVMF_MIME_MPEG4_AUDIO)
         {
             iFormatSpecificConfig.iBitrate = PVMF_MP4FFCN_AUDIO_BITRATE;
@@ -730,6 +739,8 @@ PVMFStatus PVMp4FFComposerPort::GetInputParametersFromPeer(PvmiCapabilityAndConf
     // Get timescale from peer
     if (iFormat == PVMF_MIME_AMR_IETF ||
             iFormat == PVMF_MIME_AMRWB_IETF ||
+            iFormat == PVMF_MIME_QCELP ||
+            iFormat == PVMF_MIME_EVRC ||
             iFormat == PVMF_MIME_MPEG4_AUDIO)
     {
         status = aConfig->getParametersSync(NULL, (PvmiKeyType)OUTPUT_TIMESCALE_CUR_QUERY, kvp, numParams, NULL);

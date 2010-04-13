@@ -41,6 +41,7 @@ struct MediaMetaInfo
     uint32  len;  //size of the frame
     uint32  ts;   //time stamp
     uint32  ts_delta; // timestamp delta from the previous timestamp
+    uint32  ctts_offset;
     uint32  sample_info;  //4 uint8 information together
     bool  dropFlag;
     uint8 layer;

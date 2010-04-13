@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,6 +63,7 @@ OSCL_EXPORT_REF bool PVMFFormatType::isAudio() const
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_PCM16_BE) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_AMR_IETF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_AMRWB_IETF) == 0) ||
+            (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_AMRWBP_IETF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_AMR_IF2) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_ADIF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_ADTS) == 0) ||
@@ -70,7 +72,9 @@ OSCL_EXPORT_REF bool PVMFFormatType::isAudio() const
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_3640) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_G726) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_ASF_AMR) == 0) ||
-            (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_ASF_MPEG4_AUDIO) == 0))
+            (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_ASF_MPEG4_AUDIO) == 0) ||
+            (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_QCELP) == 0) ||
+            (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_EVRC) == 0))
     {
         return true;
     }
@@ -144,6 +148,7 @@ OSCL_EXPORT_REF bool PVMFFormatType::isFile() const
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_AMRFF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_AACFF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_MP3FF) == 0) ||
+            (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_QCPFF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_WAVFF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_ASFFF) == 0) ||
             (pv_mime_strcmp(iMimeStr.c_str(), PVMF_MIME_RMFF) == 0) ||

@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,6 +75,13 @@
 #include "getactualaacconfig.h"
 
 #include "oscl_exclusive_ptr.h"
+
+#include <cutils/properties.h>
+
+#undef LOG_TAG
+#define LOG_TAG "PVMFMP4FFParserNode"
+#include <utils/Log.h>
+
 
 #define PVMF_MP4_MIME_FORMAT_AUDIO_UNKNOWN  "x-pvmf/audio/unknown"
 #define PVMF_MP4_MIME_FORMAT_VIDEO_UNKNOWN  "x-pvmf/video/unknown"
@@ -212,6 +220,9 @@ PVMFMP4FFParserNode::PVMFMP4FFParserNode(int32 aPriority) :
              iCapability.iInputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_MPEG4FF));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_AMR_IETF));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_AMRWB_IETF));
+             iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_AMRWBP_IETF));
+             iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_QCELP));
+             iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_EVRC));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_MPEG4_AUDIO));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_M4V));
              iCapability.iOutputFormatCapability.push_back(PVMFFormatType(PVMF_MIME_H2631998));
@@ -245,6 +256,13 @@ PVMFMP4FFParserNode::PVMFMP4FFParserNode(int32 aPriority) :
         OSCL_CLEANUP_BASE_CLASS(OsclTimerObject);
         OSCL_LEAVE(err);
     }
+
+    //Statistics profiling
+    char value[PROPERTY_VALUE_MAX];
+    mStatistics = false;
+    property_get("persist.debug.pv.statistics", value, "0");
+    if(atoi(value)) mStatistics = true;
+    iNumCorruptSamples = 0;
 }
 
 
@@ -2168,6 +2186,62 @@ PVMFStatus PVMFMP4FFParserNode::DoRequestPort(PVMFMP4FFParserNodeCommand& aCmd, 
         }
         trackportinfo.iNumSamples = trackportinfo.iNumAMRSamplesToRetrieve;
     }
+    else if (formattype == PVMF_MIME_QCELP)
+    {
+        if (trackportinfo.iNumQCELPSamplesToRetrieve > 0)
+        {
+            trackportinfo.iNumSamples = trackportinfo.iNumQCELPSamplesToRetrieve;
+        }
+        else
+        {
+            // Need to determine the number of QCELP samples to get based on
+            // number of frames to get and number of frames per sample
+            int32 framespersample = iMP4FileHandle->getNumQCELPFramesPerSample(trackid);
+            if (framespersample > 0)
+            {
+                trackportinfo.iNumQCELPSamplesToRetrieve = QCELP_NUMFRAMES / framespersample;
+                if (trackportinfo.iNumQCELPSamplesToRetrieve == 0 || (QCELP_NUMFRAMES % framespersample > 0))
+                {
+                    // Increment if 0 or if there is a remainder
+                    ++trackportinfo.iNumQCELPSamplesToRetrieve;
+                }
+            }
+            else
+            {
+                // Assume 1 QCELP frame per sample
+                trackportinfo.iNumQCELPSamplesToRetrieve = 1;
+            }
+        }
+        trackportinfo.iNumSamples = trackportinfo.iNumQCELPSamplesToRetrieve;
+    }
+    else if (formattype == PVMF_MIME_EVRC)
+    {
+        if (trackportinfo.iNumEVRCSamplesToRetrieve > 0)
+        {
+            trackportinfo.iNumSamples = trackportinfo.iNumEVRCSamplesToRetrieve;
+        }
+        else
+        {
+            // Need to determine the number of EVRC samples to get based on
+            // number of frames to get and number of frames per sample
+            int32 framespersample = iMP4FileHandle->getNumEVRCFramesPerSample(trackid);
+            if (framespersample > 0)
+            {
+                trackportinfo.iNumEVRCSamplesToRetrieve = EVRC_NUMFRAMES / framespersample;
+                if (trackportinfo.iNumEVRCSamplesToRetrieve == 0 || (EVRC_NUMFRAMES % framespersample > 0))
+                {
+                    // Increment if 0 or if there is a remainder
+                    ++trackportinfo.iNumEVRCSamplesToRetrieve;
+                }
+            }
+            else
+            {
+                // Assume 1 EVRC frame per sample
+                trackportinfo.iNumEVRCSamplesToRetrieve = 1;
+            }
+        }
+        trackportinfo.iNumSamples = trackportinfo.iNumEVRCSamplesToRetrieve;
+    }
     else if (formattype == PVMF_MIME_3GPP_TIMEDTEXT)
     {
         trackportinfo.iNumSamples = TIMEDTEXT_NUMSAMPLES;
@@ -2255,6 +2329,21 @@ void PVMFMP4FFParserNode::GetTrackMaxParameters(PVMFFormatType aFormatType, uint
     {
         aMaxDataSize = AMRWB_IETF_MAXTRACKDATASIZE;
         aMaxQueueDepth = AMRWB_IETF_MAXTRACKQUEUEDEPTH;
+    }
+    else if (aFormatType == PVMF_MIME_AMRWBP_IETF)
+    {
+        aMaxDataSize = AMRWB_IETF_MAXTRACKDATASIZE;
+        aMaxQueueDepth = AMRWB_IETF_MAXTRACKQUEUEDEPTH;
+    }
+    else if (aFormatType == PVMF_MIME_QCELP)
+    {
+        aMaxDataSize = QCELP_MAXTRACKDATASIZE;
+        aMaxQueueDepth = QCELP_MAXTRACKQUEUEDEPTH;
+    }
+    else if (aFormatType == PVMF_MIME_EVRC)
+    {
+        aMaxDataSize = EVRC_MAXTRACKDATASIZE;
+        aMaxQueueDepth = EVRC_MAXTRACKQUEUEDEPTH;
     }
     else if (aFormatType == PVMF_MIME_3GPP_TIMEDTEXT)
     {
@@ -3264,7 +3353,7 @@ PVMFStatus PVMFMP4FFParserNode::DoSetDataSourcePosition(PVMFMP4FFParserNodeComma
     {
         // Convert to milliseconds
         MediaClockConverter mcc(timescale);
-        mcc.update_clock(duration);
+        mcc.set_clock(duration, 0);
         durationms = mcc.get_converted_ts(1000);
     }
     if ((targetNPT >= durationms) && (PVMF_DATA_SOURCE_DIRECTION_REVERSE != iPlayBackDirection))
@@ -3701,7 +3790,7 @@ PVMFStatus PVMFMP4FFParserNode::DoQueryDataSourcePosition(PVMFMP4FFParserNodeCom
     {
         // Convert to milliseconds
         MediaClockConverter mcc(timescale);
-        mcc.update_clock(duration);
+        mcc.set_clock(duration, 0);
         durationms = mcc.get_converted_ts(1000);
     }
     if (targetNPT >= durationms)
@@ -3971,6 +4060,7 @@ void PVMFMP4FFParserNode::HandleTrackState()
                     }
                     if (iNodeTrackPortList[i].iState == PVMP4FFNodeTrackPortInfo::TRACKSTATE_SKIP_CORRUPT_SAMPLE)
                     {
+                        if(mStatistics) iNumCorruptSamples++;
                         iNodeTrackPortList[i].iState = PVMP4FFNodeTrackPortInfo::TRACKSTATE_TRANSMITTING_GETDATA;
                         RunIfNotReady();
                     }
@@ -4431,10 +4521,9 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
             numsamples = 0;
             PVMFStatus status = PVMFFailure;
             uint32 keySampleNum = PVMFFF_DEFAULT_THUMB_NAIL_SAMPLE_NUMBER;
-            if (!iMP4FileHandle->IsMovieFragmentsPresent())
-            {
-                status = FindBestThumbnailKeyFrame(trackid, keySampleNum);
-            }
+
+            status = FindBestThumbnailKeyFrame(trackid, keySampleNum);
+
             if (PVMFSuccess != status)
             {
                 // no keyframe exists in the file, hence thumbnail could not
@@ -4520,6 +4609,7 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
 
     uint32 actualdatasize = 0;
     uint32 tsDelta = 0;
+    uint32 cttsOffset = 0;
     uint32 duration_text_msec = 0;
     bool oSetNoRenderBit = false;
     bool textOnlyClip = false;
@@ -4550,6 +4640,9 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
         else
         {
             tsDelta += iGau.info[i].ts_delta;
+            //@FIXME" cttsOffset is being saved does not work if we read more than one video frame
+            //at a time
+            cttsOffset += iGau.info[i].ctts_offset;
 
             if (iGau.info[i].ts < aTrackPortInfo.iTargetNPTInMediaTimeScale)
             {
@@ -4856,7 +4949,7 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
         media_data_impl->setMarkerInfo(markerInfo);
 
         // Retrieve timestamp and convert to milliseconds
-        aTrackPortInfo.iClockConverter->set_clock(aTrackPortInfo.iTimestamp, 0);
+        aTrackPortInfo.iClockConverter->set_clock((aTrackPortInfo.iTimestamp + cttsOffset), 0);
         uint32 timestamp = aTrackPortInfo.iClockConverter->get_converted_ts(1000);
 
         // Set the media data's timestamp
@@ -4883,7 +4976,14 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
         }
         else
         {
-            aTrackPortInfo.iMediaData->setDuration(duration_msec);
+            // In cases where there are B or P frames in the stream, the
+            // timestamps are not in order. These duration values causes
+            // problems in media output node later on. We'll ignore the
+            // duration of these frames if the are not in order.
+            if(timestamp_next < timestamp)
+                aTrackPortInfo.iMediaData->setDuration(0);
+            else
+                aTrackPortInfo.iMediaData->setDuration(duration_msec);
         }
         // increment media data sequence number
         aTrackPortInfo.iSeqNum++;
@@ -4920,7 +5020,6 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
 
             if (!autopaused)
             {
-                uint32 requestedTimestamp = aTrackPortInfo.iTimestamp;
                 // If Parser library reported Insufficient data after seek, the requested
                 // timestamp here should be TS of sample from new position, so peek the
                 // sample.
@@ -4934,9 +5033,13 @@ bool PVMFMP4FFParserNode::RetrieveTrackData(PVMP4FFNodeTrackPortInfo& aTrackPort
                             && (numSamples > 0))
                     {
                         aTrackPortInfo.iClockConverter->set_clock(info.ts, 0);
-                        requestedTimestamp = aTrackPortInfo.iClockConverter->get_converted_ts(1000);
                     }
                 }
+                else
+                {
+                    aTrackPortInfo.iClockConverter->set_clock(aTrackPortInfo.iTimestamp, 0);
+                }
+                uint32 requestedTimestamp = aTrackPortInfo.iClockConverter->get_converted_ts(1000);
 
                 if ((NULL != iDataStreamInterface) && (0 != iDataStreamInterface->QueryBufferingCapacity()))
                 {
@@ -6560,6 +6663,14 @@ bool PVMFMP4FFParserNode::MapMP4ErrorCodeToEventCode(int32 aMP4ErrCode, PVUuid& 
 
         case READ_AMR_SAMPLE_ENTRY_FAILED:
             aEventCode = PVMFMP4FFParserErrAMRSampleEntryReadFailed;
+            break;
+
+        case READ_QCELP_SAMPLE_ENTRY_FAILED:
+            aEventCode = PVMFMP4FFParserErrQCELPSampleEntryReadFailed;
+            break;
+
+        case READ_EVRC_SAMPLE_ENTRY_FAILED:
+            aEventCode = PVMFMP4FFParserErrEVRCSampleEntryReadFailed;
             break;
 
         case READ_H263_SAMPLE_ENTRY_FAILED:
@@ -8220,7 +8331,7 @@ void PVMFMP4FFParserNode::LogDiagnostics()
                 PVMF_MP4FFPARSERNODE_LOGDIAGNOSTICS((0, "PVMFMP4FFParserNode - Read Media Sample Avg Time  =%2d", avg_time));
                 PVMF_MP4FFPARSERNODE_LOGDIAGNOSTICS((0, "PVMFMP4FFParserNode - Number of Sample Read each time  =%d", it->iNumSamples));
 
-
+                if(mStatistics) MediaStatistics(it);
             }
         }
     }
@@ -8303,7 +8414,7 @@ PVMFStatus PVMFMP4FFParserNode::GetVideoFrameWidth(uint32 aId, int32& aWidth, in
                         }
 
                         aWidth = width;
-                        if (aDisplayWidth == 0)
+                        if (aDisplayWidth < display_width)
                         {
                             aDisplayWidth = display_width;
                         }
@@ -8313,7 +8424,6 @@ PVMFStatus PVMFMP4FFParserNode::GetVideoFrameWidth(uint32 aId, int32& aWidth, in
                 }
             }
         }
-
     }
     else if (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_H264_VIDEO_MP4, oscl_strlen(PVMF_MIME_H264_VIDEO_MP4)) == 0)
     {
@@ -8461,7 +8571,7 @@ PVMFStatus PVMFMP4FFParserNode::GetVideoFrameHeight(uint32 aId, int32& aHeight, 
                             return PVMFFailure;
                         }
 
-                        if (aDisplayHeight == 0)
+                        if (aDisplayHeight < display_height)
                         {
                             aDisplayHeight = display_height;
                         }
@@ -8630,7 +8740,10 @@ uint32 PVMFMP4FFParserNode::GetNumAudioChannels(uint32 aId)
 
     if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR, oscl_strlen(PVMF_MIME_AMR)) == 0) ||
             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
-            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0))
+            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0) ||
+            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWBP_IETF, oscl_strlen(PVMF_MIME_AMRWBP_IETF)) == 0) ||
+            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_QCELP, oscl_strlen(PVMF_MIME_QCELP)) == 0) ||
+            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_EVRC, oscl_strlen(PVMF_MIME_EVRC)) == 0))
     {
         //always mono
         num_channels = 1;
@@ -8674,12 +8787,19 @@ uint32 PVMFMP4FFParserNode::GetAudioSampleRate(uint32 aId)
     iMP4FileHandle->getTrackMIMEType(aId, trackMIMEType);
 
     if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR, oscl_strlen(PVMF_MIME_AMR)) == 0) ||
-            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0))
+            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
+            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_QCELP, oscl_strlen(PVMF_MIME_QCELP)) == 0) ||
+            (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_EVRC, oscl_strlen(PVMF_MIME_EVRC)) == 0))
     {
         //always 8KHz
         sample_rate = 8000;
     }
     else if (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0)
+    {
+        //always 16KHz
+        sample_rate = 16000;
+    }
+    else if (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWBP_IETF, oscl_strlen(PVMF_MIME_AMRWBP_IETF)) == 0)
     {
         //always 16KHz
         sample_rate = 16000;
@@ -9071,16 +9191,22 @@ int32 PVMFMP4FFParserNode::CreateErrorInfoMsg(PVMFBasicErrorInfoMessage** aError
     return leavecode;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+void PVMFMP4FFParserNode::MediaStatistics(Oscl_Vector<PVMP4FFNodeTrackPortInfo, OsclMemAllocator>::iterator statsit)
+{
+    uint32 mov_duration = 0;
+    MediaClockConverter mcc(iMP4FileHandle->getMovieTimescale());
+    mov_duration = Oscl_Int64_Utils::get_uint64_lower32(iMP4FileHandle->getMovieDuration());
+    mcc.update_clock(mov_duration);
+    MediaClockConverter mcc2(iMP4FileHandle->getTrackMediaTimescale(statsit->iTrackId));
+    uint32 trk_duration = 0;
+    trk_duration = Oscl_Int64_Utils::get_uint64_lower32(iMP4FileHandle->getTrackMediaDuration(statsit->iTrackId));
+    mcc2.update_clock(trk_duration);
+    LOGE("=================================================================");
+    LOGE("PVMFMP4FFParserNode: Track name = %s",statsit->iMimeType.get_cstr());
+    LOGE("PVMFMP4FFParserNode: Read Media Sample Number of Times = %d", statsit->iNumTimesMediaSampleRead);
+    LOGE("PVMFMP4FFParserNode: Read Media Key Samples Read = %d", iMP4FileHandle->getNumReadKeyFrames(statsit->iTrackId));
+    LOGE("PVMFMP4FFParserNode: Read Corrupt Media Samples Number = %d", iNumCorruptSamples);
+    LOGE("PVMFMP4FFParserNode: Movie Duration = %u", mcc.get_converted_ts(1000));
+    LOGE("PVMFMP4FFParserNode: Track Duration = %u", mcc2.get_converted_ts(1000));
+    LOGE("=================================================================");
+}

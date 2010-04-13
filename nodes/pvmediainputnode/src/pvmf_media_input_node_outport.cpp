@@ -253,7 +253,7 @@ PVMFCommandId PvmfMediaInputNodeOutPort::writeAsync(uint8 format_type, int32 for
         const PvmiMediaXferHeader& data_header_info,
         OsclAny* context)
 {
-    if (iState == PvmfMediaInputNodeOutPort::PORT_STATE_STOPPED)
+    if (iState == PvmfMediaInputNodeOutPort::PORT_STATE_STOPPED && data_len < 0 )
     {
         // In Stopped state we are not going to accept any buffers
         OsclError::Leave(OsclErrNotReady);
@@ -271,11 +271,28 @@ PVMFCommandId PvmfMediaInputNodeOutPort::writeAsync(uint8 format_type, int32 for
 
                 case PVMI_MEDIAXFER_FMT_INDEX_FMT_SPECIFIC_INFO:
                 {
-                    //we expect media input components to use cap-config to provide
-                    //fmt specific info
-                    LOG_ERR((0, "Fmt Specific Info over WriteAsync Not Supported"));
-                    iNode->ReportErrorEvent(PVMFErrPortProcessing, (OsclAny*)NULL);
-                    OsclError::Leave(OsclErrGeneral);
+                    //Handle AAC format specific info here
+                    if (iFormatType == PVMF_MIME_MPEG4_AUDIO)
+                    {
+                        // save the first buffer since this is the config header and needs to be sent separately
+                        uint refCounterSize = oscl_mem_aligned_size(sizeof(OsclRefCounterDA));
+                        OsclMemoryFragment configHeader;
+                        configHeader.ptr = NULL;
+                        configHeader.len = data_len;
+                        uint8* memBuffer = (uint8*)iAlloc.allocate(refCounterSize + configHeader.len);
+                        oscl_memset(memBuffer, 0, refCounterSize + configHeader.len);
+                        OsclRefCounter* refCounter = OSCL_PLACEMENT_NEW(memBuffer, OsclRefCounterDA(memBuffer, (OsclDestructDealloc*) & iAlloc));
+                        memBuffer += refCounterSize;
+                        configHeader.ptr = (OsclAny*)memBuffer;
+
+                        oscl_memcpy(configHeader.ptr, data, configHeader.len);
+
+                        // save in class variable
+                        iConfigHeader = OsclRefCounterMemFrag(configHeader, refCounter, configHeader.len);
+
+                        iMediaInput->writeComplete(PVMFSuccess, iCmdId, NULL);
+                        return iCmdId++;
+                    }
                 }
                 break;
                 case PVMI_MEDIAXFER_FMT_INDEX_END_OF_STREAM:
@@ -426,6 +443,12 @@ PVMFCommandId PvmfMediaInputNodeOutPort::writeAsync(uint8 format_type, int32 for
                 privatedataFsiMemFrag.getMemFrag().len = sizeof(OsclAny*);
                 oscl_memcpy(fsiptr, &(data_header_info.private_data_ptr), sizeof(OsclAny *)); // store ptr data into fsi
                 mediaData->setFormatSpecificInfo(privatedataFsiMemFrag);
+            }
+
+            if ((iFormatType == PVMF_MIME_MPEG4_AUDIO) && (data_header_info.seq_num == 0))
+            {
+                LOG_DEBUG((0, "setting format specific info"));
+                mediaData->setFormatSpecificInfo(iConfigHeader);
             }
 
             LOGDATATRAFFIC((0, "PvmfMediaInputNodeOutPort::writeAsync:"

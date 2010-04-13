@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -786,7 +787,10 @@ uint32 PVMFMP4FFParserNode::GetNumMetadataValues(PVMFMetadataList& aKeyList)
                     }
                 }
                 else if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
-                         (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0))
+                         (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0) ||
+                         (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWBP_IETF, oscl_strlen(PVMF_MIME_AMRWBP_IETF)) == 0) ||
+                         (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_QCELP, oscl_strlen(PVMF_MIME_QCELP)) == 0) ||
+                         (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_EVRC, oscl_strlen(PVMF_MIME_EVRC)) == 0))
                 {
                     if (tracktype == 2)
                     {
@@ -1192,7 +1196,10 @@ int32 PVMFMP4FFParserNode::CountMetaDataKeys()
         if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_MPEG4_AUDIO, oscl_strlen(PVMF_MIME_MPEG4_AUDIO)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR, oscl_strlen(PVMF_MIME_AMR)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
-                (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0))
+                (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0) ||
+                (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWBP_IETF, oscl_strlen(PVMF_MIME_AMRWBP_IETF)) == 0) ||
+                (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_QCELP, oscl_strlen(PVMF_MIME_QCELP)) == 0) ||
+                (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_EVRC, oscl_strlen(PVMF_MIME_EVRC)) == 0))
         {
             NumMetaDataKeysAvailable += 3;
         }
@@ -1430,7 +1437,10 @@ PVMFStatus PVMFMP4FFParserNode::InitMetaData()
         if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_MPEG4_AUDIO, oscl_strlen(PVMF_MIME_MPEG4_AUDIO)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR, oscl_strlen(PVMF_MIME_AMR)) == 0) ||
                 (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
-                (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0))
+                (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0) ||
+                (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWBP_IETF, oscl_strlen(PVMF_MIME_AMRWBP_IETF)) == 0) ||
+                (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_QCELP, oscl_strlen(PVMF_MIME_QCELP)) == 0) ||
+                (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_EVRC, oscl_strlen(PVMF_MIME_EVRC)) == 0))
         {
             PushToAvailableMetadataKeysList(PVMP4METADATA_TRACKINFO_AUDIO_FORMAT_KEY, indexparam);
             PushToAvailableMetadataKeysList(PVMP4METADATA_TRACKINFO_AUDIO_NUMCHANNELS_KEY, indexparam);
@@ -3917,7 +3927,8 @@ PVMFStatus PVMFMP4FFParserNode::DoGetMetadataValues(PVMFMP4FFParserNodeCommand& 
                         }
                     }
                     else if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
-                             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0))
+                             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0) ||
+                             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWBP_IETF, oscl_strlen(PVMF_MIME_AMRWBP_IETF)) == 0))
                     {
                         // Increment the counter for the number of values found so far
                         ++numvalentries;
@@ -3926,6 +3937,28 @@ PVMFStatus PVMFMP4FFParserNode::DoGetMetadataValues(PVMFMP4FFParserNodeCommand& 
                         {
                             retval =
                                 PVMFCreateKVPUtils::CreateKVPForCharStringValue(trackkvp, PVMP4METADATA_TRACKINFO_TYPE_KEY, _STRLIT_CHAR(PVMF_MIME_AMR_IETF), indexparam);
+                        }
+                    }
+                    else if (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_QCELP, oscl_strlen(PVMF_MIME_QCELP)) == 0)
+                    {
+                        // Increment the counter for the number of values found so far
+                        ++numvalentries;
+                        // Add the value entry if past the starting index
+                        if (numvalentries > starting_index)
+                        {
+                            retval =
+                                PVMFCreateKVPUtils::CreateKVPForCharStringValue(trackkvp, PVMP4METADATA_TRACKINFO_TYPE_KEY, _STRLIT_CHAR(PVMF_MIME_QCELP), indexparam);
+                        }
+                    }
+                    else if (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_EVRC, oscl_strlen(PVMF_MIME_EVRC)) == 0)
+                    {
+                        // Increment the counter for the number of values found so far
+                        ++numvalentries;
+                        // Add the value entry if past the starting index
+                        if (numvalentries > starting_index)
+                        {
+                            retval =
+                                PVMFCreateKVPUtils::CreateKVPForCharStringValue(trackkvp, PVMP4METADATA_TRACKINFO_TYPE_KEY, _STRLIT_CHAR(PVMF_MIME_EVRC), indexparam);
                         }
                     }
                     else if (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_3GPP_TIMEDTEXT, oscl_strlen(PVMF_MIME_3GPP_TIMEDTEXT)) == 0)
@@ -4428,7 +4461,8 @@ PVMFStatus PVMFMP4FFParserNode::DoGetMetadataValues(PVMFMP4FFParserNodeCommand& 
                         }
                     }
                     else if ((oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMR_IETF, oscl_strlen(PVMF_MIME_AMR_IETF)) == 0) ||
-                             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0))
+                             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWB_IETF, oscl_strlen(PVMF_MIME_AMRWB_IETF)) == 0) ||
+                             (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_AMRWBP_IETF, oscl_strlen(PVMF_MIME_AMRWBP_IETF)) == 0))
                     {
                         if (tracktype == 2)
                         {
@@ -4439,6 +4473,29 @@ PVMFStatus PVMFMP4FFParserNode::DoGetMetadataValues(PVMFMP4FFParserNodeCommand& 
                             }
                         }
                     }
+                    else if (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_QCELP, oscl_strlen(PVMF_MIME_QCELP)) == 0)
+                    {
+                        if (tracktype == 2)
+                        {
+                            ++numvalentries;
+                            if (numvalentries > starting_index)
+                            {
+                                retval = PVMFCreateKVPUtils::CreateKVPForCharStringValue(trackkvp, PVMP4METADATA_TRACKINFO_AUDIO_FORMAT_KEY, _STRLIT_CHAR(PVMF_MIME_QCELP), indexparam);
+                            }
+                        }
+                    }
+                    else if (oscl_strncmp(trackMIMEType.get_str(), PVMF_MIME_EVRC, oscl_strlen(PVMF_MIME_EVRC)) == 0)
+                    {
+                        if (tracktype == 2)
+                        {
+                            ++numvalentries;
+                            if (numvalentries > starting_index)
+                            {
+                                retval = PVMFCreateKVPUtils::CreateKVPForCharStringValue(trackkvp, PVMP4METADATA_TRACKINFO_AUDIO_FORMAT_KEY, _STRLIT_CHAR(PVMF_MIME_EVRC), indexparam);
+                            }
+                        }
+                    }
+
                     if (retval != PVMFSuccess && retval != PVMFErrArgument)
                     {
                         break;

@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -359,7 +360,14 @@ PVMFStatus PVMp4FFComposerNode::VerifyAndSetConfigParameter(PvmiKvp& aParameter,
                 {
                     iErrorAddTrack = PVMF_MIME_AMRWB_IETF;
                 }
-
+                if (pv_mime_strcmp(val_key, "PVMF_MIME_QCELP") == 0)
+                {
+                    iErrorAddTrack = PVMF_MIME_QCELP;
+                }
+                if (pv_mime_strcmp(val_key, "PVMF_MIME_EVRC") == 0)
+                {
+                    iErrorAddTrack = PVMF_MIME_EVRC;
+                }
             }
             break;
         case ERROR_NODE_CMD:

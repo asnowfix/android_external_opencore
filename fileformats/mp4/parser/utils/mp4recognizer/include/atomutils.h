@@ -130,7 +130,7 @@ class MP4_FF_FILE
             return _pvfile.IsOpen();
         }
 
-        int32                 _fileSize;
+        uint32                 _fileSize;
         Oscl_FileServer*      _fileServSession;
         PVFile                _pvfile;
 };

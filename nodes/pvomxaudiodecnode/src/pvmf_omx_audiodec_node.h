@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +34,8 @@
 #define PVOMXAUDIODEC_AMRNB_SAMPLES_PER_FRAME 160
 #define PVOMXAUDIODEC_AMRWB_SAMPLES_PER_FRAME 320
 #define PVOMXAUDIODEC_MP3_DEFAULT_SAMPLES_PER_FRAME 1152
+#define PVOMXAUDIODEC_QCELP_SAMPLES_PER_FRAME 160
+#define PVOMXAUDIODEC_EVRC_SAMPLES_PER_FRAME 160
 
 struct channelSampleInfo
 {

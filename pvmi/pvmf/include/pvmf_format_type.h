@@ -95,7 +95,9 @@ typedef OSCL_String PvmfMimeString;
 #define PVMF_MIME_AMR_IETF      "X-AMR-IETF-SEPARATE" // Today's IETF
 #define PVMF_MIME_AMRWB_IETF    "X-AMRWB-IETF-SEPARATE" // Today's IETF
 #define PVMF_MIME_AMR_IF2       "X-AMR-IF2"
+#define PVMF_MIME_AMRWBP_IETF    "X-AMRWBP-IETF-SEPARATE" // Today's IETF
 #define PVMF_MIME_EVRC          "audio/EVRC" // Streaming EVRC format
+#define PVMF_MIME_QCELP          "audio/QCELP" // QCELP format
 #define PVMF_MIME_MP3           "audio/MPEG"
 #define PVMF_MIME_ADIF          "X-AAC-ADIF" //.aac file format
 #define PVMF_MIME_ADTS          "X-AAC-ADTS" //.aac file format
@@ -134,18 +136,19 @@ typedef OSCL_String PvmfMimeString;
 #define PVMF_MIME_IMAGE_FORMAT "image"
 
 // MIME strings for Multiplexed formats and single-media file formats.
-#define PVMF_MIME_MPEG4FF       "video/MP4"
-#define PVMF_MIME_H223          "X-H223"
-#define PVMF_MIME_RTP           "X-RTP"
-#define PVMF_MIME_AMRFF         "X-AMR-FF"
-#define PVMF_MIME_AACFF         "X-AAC-FF"
-#define PVMF_MIME_MP3FF         "X-MP3-FF"
-#define PVMF_MIME_WAVFF         "X-WAV-FF"
-#define PVMF_MIME_ASFFF         "x-pvmf/mux/asf"
-#define PVMF_MIME_RMFF          "x-pvmf/mux/rm"
-#define PVMF_MIME_DIVXFF        "x-pvmf/mux/divx"
-#define PVMF_MIME_MIDIFF        "application/x-midi"
-#define PVMF_MIME_AVIFF         "x-pvmf/mux/avi"
+#define PVMF_MIME_MPEG4FF		"video/MP4"
+#define PVMF_MIME_H223			"X-H223"
+#define PVMF_MIME_RTP			"X-RTP"
+#define PVMF_MIME_AMRFF			"X-AMR-FF"
+#define PVMF_MIME_AACFF			"X-AAC-FF"
+#define PVMF_MIME_MP3FF			"X-MP3-FF"
+#define PVMF_MIME_QCPFF			"X-QCP-FF"
+#define PVMF_MIME_WAVFF			"X-WAV-FF"
+#define PVMF_MIME_ASFFF			"x-pvmf/mux/asf"
+#define PVMF_MIME_RMFF			"x-pvmf/mux/rm"
+#define PVMF_MIME_DIVXFF		"x-pvmf/mux/divx"
+#define PVMF_MIME_MIDIFF		"application/x-midi"
+#define PVMF_MIME_AVIFF			"x-pvmf/mux/avi"
 #define PVMF_MIME_DATA_PVRFF    "video/x-pvmf-pvr "
 
 // MIME strings for RAW data formats

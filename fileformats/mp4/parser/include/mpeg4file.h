@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -773,6 +774,30 @@ class Mpeg4File : public IMpeg4File, public Parentable
             }
         }
 
+        int32 getNumQCELPFramesPerSample(uint32 trackID)
+        {
+            if (_pmovieAtom != NULL)
+            {
+                return (_pmovieAtom->getNumQCELPFramesPerSample(trackID));
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        int32 getNumEVRCFramesPerSample(uint32 trackID)
+        {
+            if (_pmovieAtom != NULL)
+            {
+                return (_pmovieAtom->getNumEVRCFramesPerSample(trackID));
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
         uint8 parseBufferAndGetNumAMRFrames(uint8* buffer, uint32 size);
 
 
@@ -1281,6 +1306,18 @@ class Mpeg4File : public IMpeg4File, public Parentable
                 Oscl_FileServer* aFileServSession);
         void DestroyDataStreamForExternalDownload();
 
+
+        uint32 getNumReadKeyFrames(uint32 trackid)
+        {
+            if (_pmovieAtom != NULL)
+            {
+                return _pmovieAtom->getNumReadKeyFrames(trackid);
+            }
+	    else
+            {
+		return 0;
+            }
+	}
 
     private:
         void ReserveMemoryForLangCodeVector(Oscl_Vector<uint16, OsclMemAllocator> &iLangCode, int32 capacity, int32 &leavecode);

@@ -41,13 +41,16 @@
 /*
  * Jitter Buffer Node config constants
  */
-#define PVMF_JITTER_BUFFER_NODE_MEDIA_MSG_SIZE 128
+
+// JB size based on 384 Kbps streaming
+#define PVMF_JITTER_BUFFER_NODE_MEDIA_MSG_SIZE 384
 
 #define DEFAULT_MAX_INACTIVITY_DURATION_IN_MS 70000
 
 #define DEFAULT_NUM_FRAGMENTS_IN_MEDIA_MSG 1
 
-#define DEFAULT_NUM_MEDIA_MSGS_IN_JITTER_BUFFER    2048 //64
+// Allow buffering in case of bitrate > 384kbps
+#define DEFAULT_NUM_MEDIA_MSGS_IN_JITTER_BUFFER    4096 //64
 
 #define PVMF_JITTER_BUFFER_NODE_THINNING_PERCENT 10
 
@@ -82,7 +85,9 @@
 #define PVMF_JITTER_BUFFER_NODE_MEM_POOL_OVERHEAD  10
 //This should be at least 2x the max socket buffer size to prevent
 //packet loss due to waiting for free buffers.
-#define MIN_RTP_SOCKET_MEM_POOL_SIZE_IN_BYTES      (8 * MAX_SOCKET_BUFFER_SIZE)
+
+//Memory pool for RTP packets based on 384Kbps
+#define MIN_RTP_SOCKET_MEM_POOL_SIZE_IN_BYTES      (24 * MAX_SOCKET_BUFFER_SIZE)
 #define SOCKET_MEM_POOL_OVERHEAD_IN_BYTES          256
 
 // ************* PVMFSMSharedBufferAllocWithReSize  constants
@@ -99,7 +104,7 @@
                 (MIN_RTP_SOCKET_MEM_POOL_SIZE_IN_BYTES + 2*MAX_SOCKET_BUFFER_SIZE)
 
 #define MIN_SOCKETMEMPOOL_RESIZELEN_INPUT_PORT     0
-#define MAX_SOCKETMEMPOOL_RESIZELEN_INPUT_PORT     128*1024
+#define MAX_SOCKETMEMPOOL_RESIZELEN_INPUT_PORT     384*1024
 
 // *************
 

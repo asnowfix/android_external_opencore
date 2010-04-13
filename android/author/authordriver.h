@@ -68,20 +68,20 @@
 // Platform-specic and temporal workaround to prevent video size
 // from being set too large
 
-#define ANDROID_MAX_ENCODED_FRAME_WIDTH            352
-#define ANDROID_MAX_ENCODED_FRAME_HEIGHT           288
 #define ANDROID_MIN_ENCODED_FRAME_WIDTH            176
 #define ANDROID_MIN_ENCODED_FRAME_HEIGHT           144
+#define ANDROID_MAX_ENCODED_FRAME_WIDTH            1280
+#define ANDROID_MAX_ENCODED_FRAME_HEIGHT           720
 
 #define ANDROID_MIN_FRAME_RATE_FPS                 5
-#define ANDROID_MAX_FRAME_RATE_FPS                 20
+#define ANDROID_MAX_FRAME_RATE_FPS                 30
 
-static const int32 DEFAULT_VIDEO_FRAME_RATE  = 20;
+static const int32 DEFAULT_VIDEO_FRAME_RATE  = 30;
 static const int32 DEFAULT_VIDEO_WIDTH       = 176;
 static const int32 DEFAULT_VIDEO_HEIGHT      = 144;
 
 static const int32 MIN_VIDEO_BITRATE_SETTING = 192000;
-static const int32 MAX_VIDEO_BITRATE_SETTING = 420000;
+static const int32 MAX_VIDEO_BITRATE_SETTING = 6000000;
 static const int32 MAX_AUDIO_BITRATE_SETTING = 320000; // Max bitrate??
 static const int32 MIN_AUDIO_BITRATE_SETTING = 1;      // Min bitrate??
 static const int32 DEFAULT_AUDIO_BITRATE_SETTING = 64000; // Default for all the other audio

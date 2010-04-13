@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1723,7 +1724,9 @@ bool PVPlayerEngine::FindTrackForDatapathUsingMimeString(bool& aVideoTrack, bool
                  (pv_mime_strcmp(mimeString, PVMF_MIME_AMRWB) == 0) ||
                  (pv_mime_strcmp(mimeString, PVMF_MIME_AMR_IETF) == 0) ||
                  (pv_mime_strcmp(mimeString, PVMF_MIME_AMRWB_IETF) == 0) ||
+                 (pv_mime_strcmp(mimeString, PVMF_MIME_AMRWBP_IETF) == 0) ||
                  (pv_mime_strcmp(mimeString, PVMF_MIME_AMR_IF2) == 0) ||
+                 (pv_mime_strcmp(mimeString, PVMF_MIME_QCELP) == 0) ||
                  (pv_mime_strcmp(mimeString, PVMF_MIME_EVRC) == 0) ||
                  (pv_mime_strcmp(mimeString, PVMF_MIME_MP3) == 0) ||
                  (pv_mime_strcmp(mimeString, PVMF_MIME_ADIF) == 0) ||
@@ -1800,7 +1803,9 @@ bool PVPlayerEngine::FindDatapathForTrackUsingMimeString(bool aVideoTrack, bool 
                         (pv_mime_strcmp(mimeString, PVMF_MIME_AMRWB) == 0) ||
                         (pv_mime_strcmp(mimeString, PVMF_MIME_AMR_IETF) == 0) ||
                         (pv_mime_strcmp(mimeString, PVMF_MIME_AMRWB_IETF) == 0) ||
+                        (pv_mime_strcmp(mimeString, PVMF_MIME_AMRWBP_IETF) == 0) ||
                         (pv_mime_strcmp(mimeString, PVMF_MIME_AMR_IF2) == 0) ||
+                        (pv_mime_strcmp(mimeString, PVMF_MIME_QCELP) == 0) ||
                         (pv_mime_strcmp(mimeString, PVMF_MIME_EVRC) == 0) ||
                         (pv_mime_strcmp(mimeString, PVMF_MIME_MP3) == 0) ||
                         (pv_mime_strcmp(mimeString, PVMF_MIME_ADIF) == 0) ||
@@ -1918,7 +1923,7 @@ void PVPlayerEngine::NodeCommandCompleted(const PVMFCmdResp& aResponse)
     OSCL_ASSERT(nodecontext);
 
     // Ignore other node completion if cancelling
-    if (!iCmdToCancel.empty() || (CheckForPendingErrorHandlingCmd() && aResponse.GetCmdStatus() == PVMFErrCancelled))
+    if (CheckForPendingErrorHandlingCmd() && aResponse.GetCmdStatus() == PVMFErrCancelled)
     {
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, "PVPlayerEngine::NodeCommandCompleted() Node command completion ignored due to cancel process, id=%d", aResponse.GetCmdId()));
         // Remove the context from the list
@@ -3946,7 +3951,6 @@ PVMFStatus PVPlayerEngine::DoCancelPendingNodeDatapathCommand()
                 {
                     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
                                     (0, "PVPlayerEngine::DoCancelPendingNodeDatapathCommand() CancelAllCommands() on source node did a leave"));
-                    FreeEngineContext(iCurrentContextList[i]);
                 }
             }
             else if (iCurrentContextList[i]->iEngineDatapath != NULL)
@@ -3963,7 +3967,6 @@ PVMFStatus PVPlayerEngine::DoCancelPendingNodeDatapathCommand()
                     {
                         PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
                                         (0, "PVPlayerEngine::DoCancelPendingNodeDatapathCommand() CancelAllCommands() on sink node did a leave"));
-                        FreeEngineContext(iCurrentContextList[i]);
                     }
                 }
                 else if (iCurrentContextList[i]->iNode == iCurrentContextList[i]->iEngineDatapath->iDecNode)
@@ -3978,7 +3981,6 @@ PVMFStatus PVPlayerEngine::DoCancelPendingNodeDatapathCommand()
                     {
                         PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
                                         (0, "PVPlayerEngine::DoCancelPendingNodeDatapathCommand() CancelAllCommands() on dec node did a leave"));
-                        FreeEngineContext(iCurrentContextList[i]);
                     }
                 }
                 else
@@ -4022,7 +4024,6 @@ PVMFStatus PVPlayerEngine::DoCancelPendingNodeDatapathCommand()
             {
                 PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
                                 (0, "PVPlayerEngine::DoCancelPendingNodeDatapathCommand() CancelAllCommands() on recognizer node did a leave"));
-                FreeEngineContext(iCurrentContextList[i]);
             }
         }
         else
@@ -4031,6 +4032,7 @@ PVMFStatus PVPlayerEngine::DoCancelPendingNodeDatapathCommand()
             PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVPlayerEngine::DoCancelPendingNodeDatapathCommand() No pending node or datapath. Asserting"));
             OSCL_ASSERT(false);
         }
+        FreeEngineContext(iCurrentContextList[i]);
     }
 
     if (iNumberCancelCmdPending == 0)
@@ -8418,6 +8420,15 @@ PVMFStatus PVPlayerEngine::DoPause(PVPlayerEngineCommand& aCmd)
             break;
 
         case PVP_STATE_PREPARED :
+
+            if (aCmd.GetCmdType() == PVP_ENGINE_COMMAND_PAUSE)
+            {
+                // It is possible to get pause command in the prepare state.
+                // This is ideally sent during the initial bootup time and to handle the TCXO
+                // shutdown for hardware decoders.
+                break;
+            }
+
             if (aCmd.GetCmdType() == PVP_ENGINE_COMMAND_PAUSE_DUE_TO_ENDOFCLIP)
             {
                 //It is possible in repositioning to end use-case that
@@ -8656,6 +8667,14 @@ PVMFStatus PVPlayerEngine::DoResume(PVPlayerEngineCommand& aCmd)
     else
     {
         retval = DoSourceNodeStart(aCmd.GetCmdId(), aCmd.GetContext());
+
+        // Explicitly start the playback clock. Sometimes we see that the
+        // playbackclock is not started, during Resume / TCXO shutdown
+        if (PVMFSuccess == retval)
+        {
+            UpdateCurrentEndPosition(iCurrentEndPosition);
+            StartPlaybackClock();
+        }
     }
 
     if (retval != PVMFSuccess)

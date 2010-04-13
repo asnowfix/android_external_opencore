@@ -93,6 +93,10 @@
 #include "pvmf_audio_encnode_extension.h"
 #endif
 
+#ifndef PVMF_THREADSAFE_MEMPOOL_H_INCLUDED
+#include "threadsafe_mempool.h"
+#endif
+
 // DV: NOTE - this needs to be fixed
 //#ifndef __PVM4VENCODER_H
 //#include "pvm4vencoder.h"
@@ -154,6 +158,10 @@ typedef struct InputBufCtrlStruct
     PVMFSharedMediaDataPtr pMediaData;
 } InputBufCtrlStruct;
 
+typedef struct CameraPmemInfoStruct {
+    uint32 pmem_fd; /* pmem file descriptor */
+    uint32 offset;  /* pmem buffer offset */
+} CameraPmemInfo;
 
 // fwd class declaration
 class PVLogger;
@@ -182,7 +190,7 @@ OMX_ERRORTYPE CallbackFillBufferDoneEnc(OMX_OUT OMX_HANDLETYPE aComponent,
 
 //Default values for number of Input/Output buffers. If the component needs more than this, it will be
 // negotiated. If the component does not need more than this number, the default is used
-#define NUMBER_INPUT_BUFFER 5
+#define NUMBER_INPUT_BUFFER 4
 #define NUMBER_OUTPUT_BUFFER 9
 
 // for AMR encoder
@@ -1176,8 +1184,8 @@ class PVMFOMXEncNode
         // OUTPUT BUFFER RELATED MEMBERS
 
 
-        // Output buffer memory pool
-        OsclMemPoolFixedChunkAllocator *iOutBufMemoryPool;
+        // Output buffer memory pool: use threadsafe implementation
+        ThreadSafeMemPoolFixedChunkAllocator *iOutBufMemoryPool;
 
         // Memory pool for simple media data
         OsclMemPoolFixedChunkAllocator *iMediaDataMemPool;

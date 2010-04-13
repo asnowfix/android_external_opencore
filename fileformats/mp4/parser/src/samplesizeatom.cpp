@@ -162,6 +162,7 @@ SampleSizeAtom::SampleSizeAtom(MP4_FF_FILE *fp,
                 }
 
                 uint32 sample;
+                bool hasAllSamplesZeroSize = true;
                 for (uint32 i = 0; i < _sampleCount; i++)
                 {
                     if (!AtomUtils::read32(fp, sample))
@@ -175,7 +176,18 @@ SampleSizeAtom::SampleSizeAtom(MP4_FF_FILE *fp,
                     {
                         _maxSampleSize = _psampleSizeVec[i];
                     }
+
+                    if (_psampleSizeVec[i] > 0)
+                        hasAllSamplesZeroSize = false;
+
                     _parsed_entry_cnt++;
+                }
+
+                //Check for corrupted clips with all sample entries as zero
+                if (hasAllSamplesZeroSize)
+                {
+                    _success = false;
+                    return;
                 }
             }
         }

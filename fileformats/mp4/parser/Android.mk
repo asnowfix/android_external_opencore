@@ -3,9 +3,13 @@ include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := \
 	src/3gpp_amrdecoderspecificinfo.cpp \
+	src/3gpp_amrwbpdecoderspecificinfo.cpp \
  	src/3gpp_h263decoderspecificinfo.cpp \
+	src/3gpp2_evrcdecoderspecificinfo.cpp \
+	src/3gpp2_qcelpdecoderspecificinfo.cpp \
  	src/amrdecoderspecificinfo.cpp \
  	src/amrsampleentry.cpp \
+	src/amrwbpsampleentry.cpp \
  	src/assetinfoatoms.cpp \
  	src/atom.cpp \
  	src/audiosampleentry.cpp \
@@ -19,6 +23,7 @@ LOCAL_SRC_FILES := \
  	src/basedescriptor.cpp \
  	src/boxrecord.cpp \
  	src/chunkoffsetatom.cpp \
+	src/chunklargeoffsetatom.cpp \
  	src/compositionoffsetatom.cpp \
  	src/copyrightatom.cpp \
  	src/dataentryatom.cpp \
@@ -33,6 +38,7 @@ LOCAL_SRC_FILES := \
  	src/esdescriptor.cpp \
  	src/es_id_inc.cpp \
  	src/es_id_ref.cpp \
+ 	src/evrcsampleentry.cpp \
  	src/expandablebaseclass.cpp \
  	src/filetypeatom.cpp \
  	src/fontrecord.cpp \
@@ -69,6 +75,7 @@ LOCAL_SRC_FILES := \
  	src/objectdescriptoratom.cpp \
  	src/oma2boxes.cpp \
  	src/pvuserdataatom.cpp \
+ 	src/qcelpsampleentry.cpp \
  	src/sampledescriptionatom.cpp \
  	src/sampleentry.cpp \
  	src/samplesizeatom.cpp \

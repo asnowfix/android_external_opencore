@@ -27,7 +27,6 @@
 // needed for capability and config
 #include "pv_omx_config_parser.h"
 
-
 #include "OMX_Core.h"
 #include "pvmf_omx_basedec_callbacks.h"     //used for thin AO in Decoder's callbacks
 #include "pv_omxcore.h"
@@ -198,6 +197,10 @@ PVMFOMXVideoDecNode::PVMFOMXVideoDecNode(int32 aPriority, bool aHwAccelerated) :
     iLastYUVHeight = 0;
     iStride = 0;
     iSliceHeight = 0;
+    iUpstreamParsing = 0;
+    iH264FragSize = 0;
+    iH264InitBuffer = NULL;
+    iH264InitBufSize = 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -219,11 +222,8 @@ PVMFStatus PVMFOMXVideoDecNode::HandlePortReEnable()
     // is this output port?
     if (iPortIndexForDynamicReconfig == iOutputPortIndex)
     {
-        // set the new width / height
-        iYUVWidth =  iParamPort.format.video.nFrameWidth;
-        iYUVHeight = iParamPort.format.video.nFrameHeight;
-
         iOMXComponentOutputBufferSize = iParamPort.nBufferSize;
+        iNumOutputBuffers = iParamPort.nBufferCountActual;
 
         // do we need to increase the number of buffers?
         if (iNumOutputBuffers < iParamPort.nBufferCountMin)
@@ -232,19 +232,26 @@ PVMFStatus PVMFOMXVideoDecNode::HandlePortReEnable()
         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE,
                         (0, "PVMFOMXVideoDecNode::HandlePortReEnable() new output buffers %d, size %d", iNumOutputBuffers, iOMXComponentOutputBufferSize));
 
-        iStride = OSCL_ABS(iParamPort.format.video.nStride);
-        iSliceHeight = iParamPort.format.video.nSliceHeight;
+        if (!iUpstreamParsing) {
+            // set the new width / height
+            iYUVWidth =  iParamPort.format.video.nFrameWidth;
+            iYUVHeight = iParamPort.format.video.nFrameHeight;
 
-        // This should not happen. If it does, it is a bug in the OMX component.
-        OSCL_ASSERT( (iStride < iParamPort.format.video.nFrameWidth) || (iSliceHeight < iParamPort.format.video.nFrameHeight) );
-        if (iStride < iParamPort.format.video.nFrameWidth)
-        {
-            iStride = iParamPort.format.video.nFrameWidth;
-        }
 
-        if (iSliceHeight < iParamPort.format.video.nFrameHeight)
-        {
-            iSliceHeight = iParamPort.format.video.nFrameHeight;
+            iStride = OSCL_ABS(iParamPort.format.video.nStride);
+            iSliceHeight = iParamPort.format.video.nSliceHeight;
+
+            // This should not happen. If it does, it is a bug in the OMX component.
+            OSCL_ASSERT( (iStride < iParamPort.format.video.nFrameWidth) || (iSliceHeight < iParamPort.format.video.nFrameHeight) );
+            if (iStride < iParamPort.format.video.nFrameWidth)
+            {
+                iStride = iParamPort.format.video.nFrameWidth;
+            }
+
+            if (iSliceHeight < iParamPort.format.video.nFrameHeight)
+            {
+                iSliceHeight = iParamPort.format.video.nFrameHeight;
+            }
         }
 
         // Before allocating new set of output buffers, re-send Video FSI to
@@ -283,9 +290,8 @@ PVMFStatus PVMFOMXVideoDecNode::HandlePortReEnable()
                     fsiInfo->buffer_size = iOMXComponentOutputBufferSize;
                     fsiInfo->width = iStride;
                     fsiInfo->height = iSliceHeight;
-
                     OsclMemAllocator alloc;
-                    int32 KeyLength = oscl_strlen(PVMF_FORMAT_SPECIFIC_INFO_KEY_YUV) + 1;
+                    int32 KeyLength = oscl_strlen(PVMF_FORMAT_SPECIFIC_INFO_KEY) + 1;
                     PvmiKeyType KvpKey = (PvmiKeyType)alloc.ALLOCATE(KeyLength);
 
                     if (NULL == KvpKey)
@@ -293,7 +299,7 @@ PVMFStatus PVMFOMXVideoDecNode::HandlePortReEnable()
                         return false;
                     }
 
-                    oscl_strncpy(KvpKey, PVMF_FORMAT_SPECIFIC_INFO_KEY_YUV, KeyLength);
+                    oscl_strncpy(KvpKey, PVMF_FORMAT_SPECIFIC_INFO_KEY, KeyLength);
                     int32 err;
 
                     OSCL_TRY(err, ((PVMFOMXDecPort*)iOutPort)->pvmiSetPortFormatSpecificInfoSync(yuvFsiMemfrag, KvpKey););
@@ -308,8 +314,6 @@ PVMFStatus PVMFOMXVideoDecNode::HandlePortReEnable()
                         sendFsi = false;
                         iCompactFSISettingSucceeded = true;
                     }
-
-
 
                     alloc.deallocate((OsclAny*)(KvpKey));
                     fsiInfo->video_format.~PVMFFormatType();
@@ -682,7 +686,6 @@ bool PVMFOMXVideoDecNode::NegotiateComponentParameters(OMX_PTR aOutputParameters
 
     pOutputParameters = (VideoOMXConfigParserOutputs *)aOutputParameters;
 
-
     // set the width/height on INPUT port parameters (this may change during port reconfig)
     if ((pOutputParameters->width != 0) && (pOutputParameters->height != 0))
     {
@@ -710,22 +713,31 @@ bool PVMFOMXVideoDecNode::NegotiateComponentParameters(OMX_PTR aOutputParameters
         return false;
     }
 
-    // check if params are OK. In case of H263, width/height cannot be obtained until
-    // 1st frame is decoded, so read them from the output port.
-    // otherwise, used Width/Height from the config parser utility
-    // set the width/height based on port parameters (this may change during port reconfig)
-    if ((pOutputParameters->width != 0) && (pOutputParameters->height != 0) && iInPort && (((PVMFOMXDecPort*)iInPort)->iFormat != PVMF_MIME_H2631998 || ((PVMFOMXDecPort*)iInPort)->iFormat != PVMF_MIME_H2632000))
+    if (iUpstreamParsing)
     {
 		// set width and height obtained from config parser in the output port as well
-		iParamPort.format.video.nFrameWidth = pOutputParameters->width;
-        iParamPort.format.video.nFrameHeight = pOutputParameters->height;
-        iYUVWidth  = pOutputParameters->width;
-        iYUVHeight = pOutputParameters->height;
+        iParamPort.format.video.nFrameWidth = iYUVWidth;
+        iParamPort.format.video.nFrameHeight = iYUVHeight;
     }
     else
     {
-        iYUVWidth =  iParamPort.format.video.nFrameWidth;
-        iYUVHeight = iParamPort.format.video.nFrameHeight;
+        // check if params are OK. In case of H263, width/height cannot be obtained until
+        // 1st frame is decoded, so read them from the output port.
+        // otherwise, used Width/Height from the config parser utility
+        // set the width/height based on port parameters (this may change during port reconfig)
+        if ((pOutputParameters->width != 0) && (pOutputParameters->height != 0) && iInPort && (((PVMFOMXDecPort*)iInPort)->iFormat != PVMF_MIME_H2631998 || ((PVMFOMXDecPort*)iInPort)->iFormat != PVMF_MIME_H2632000))
+        {
+            // set width and height obtained from config parser in the output port as well
+            iParamPort.format.video.nFrameWidth = pOutputParameters->width;
+            iParamPort.format.video.nFrameHeight = pOutputParameters->height;
+            iYUVWidth  = pOutputParameters->width;
+            iYUVHeight = pOutputParameters->height;
+        }
+        else
+        {
+            iYUVWidth  = iParamPort.format.video.nFrameWidth;
+            iYUVHeight = iParamPort.format.video.nFrameHeight;
+        }
     }
 
 	// Send the parameters right away to allow the OMX component to re-calculate the buffer size
@@ -764,19 +776,22 @@ bool PVMFOMXVideoDecNode::NegotiateComponentParameters(OMX_PTR aOutputParameters
     if (iNumOutputBuffers < iParamPort.nBufferCountMin)
         iNumOutputBuffers = iParamPort.nBufferCountMin;
 
-    iStride = OSCL_ABS(iParamPort.format.video.nStride);
-    iSliceHeight = iParamPort.format.video.nSliceHeight;
-
-    // This should not happen. If it does, it is a bug in the OMX component.
-    OSCL_ASSERT( (iStride < iParamPort.format.video.nFrameWidth) || (iSliceHeight < iParamPort.format.video.nFrameHeight) );
-    if (iStride < iParamPort.format.video.nFrameWidth)
+    if (!iUpstreamParsing)
     {
-        iStride = iParamPort.format.video.nFrameWidth;
-    }
+        iStride = OSCL_ABS(iParamPort.format.video.nStride);
+        iSliceHeight = iParamPort.format.video.nSliceHeight;
 
-    if(iSliceHeight < iParamPort.format.video.nFrameHeight)
-    {
-        iSliceHeight = iParamPort.format.video.nFrameHeight;
+        // This should not happen. If it does, it is a bug in the OMX component.
+        OSCL_ASSERT( (iStride < iParamPort.format.video.nFrameWidth) || (iSliceHeight < iParamPort.format.video.nFrameHeight) );
+        if (iStride < iParamPort.format.video.nFrameWidth)
+        {
+            iStride = iParamPort.format.video.nFrameWidth;
+        }
+
+        if(iSliceHeight < iParamPort.format.video.nFrameHeight)
+        {
+            iSliceHeight = iParamPort.format.video.nFrameHeight;
+        }
     }
 
     //Send the FSI information to media output node here, before setting output
@@ -924,7 +939,7 @@ bool PVMFOMXVideoDecNode::NegotiateComponentParameters(OMX_PTR aOutputParameters
                 fsiInfo->height = iSliceHeight;
 
                 OsclMemAllocator alloc;
-                int32 KeyLength = oscl_strlen(PVMF_FORMAT_SPECIFIC_INFO_KEY_YUV) + 1;
+                int32 KeyLength = oscl_strlen(PVMF_FORMAT_SPECIFIC_INFO_KEY) + 1;
                 PvmiKeyType KvpKey = (PvmiKeyType)alloc.ALLOCATE(KeyLength);
 
                 if (NULL == KvpKey)
@@ -932,7 +947,7 @@ bool PVMFOMXVideoDecNode::NegotiateComponentParameters(OMX_PTR aOutputParameters
                     return false;
                 }
 
-                oscl_strncpy(KvpKey, PVMF_FORMAT_SPECIFIC_INFO_KEY_YUV, KeyLength);
+                oscl_strncpy(KvpKey, PVMF_FORMAT_SPECIFIC_INFO_KEY, KeyLength);
                 int32 err;
 
                 OSCL_TRY(err, ((PVMFOMXDecPort*)iOutPort)->pvmiSetPortFormatSpecificInfoSync(yuvFsiMemfrag, KvpKey););
@@ -1140,7 +1155,7 @@ bool PVMFOMXVideoDecNode::InitDecoder(PVMFSharedMediaDataPtr& DataIn)
 {
     OSCL_UNUSED_ARG(DataIn);
 
-    uint16 length = 0, size = 0;
+    uint16 length = 0;
     uint8 *tmp_ptr;
     PVMFFormatType Format = PVMF_MIME_FORMAT_UNKNOWN;
 
@@ -1160,37 +1175,43 @@ bool PVMFOMXVideoDecNode::InitDecoder(PVMFSharedMediaDataPtr& DataIn)
     if (Format == PVMF_MIME_H264_VIDEO ||
             Format == PVMF_MIME_H264_VIDEO_MP4)
     {
-        uint8* initbuffer = ((PVMFOMXDecPort*)iInPort)->getTrackConfig();
-        int32 initbufsize = (int32)((PVMFOMXDecPort*)iInPort)->getTrackConfigSize();
+        if(!iConfigInProgress)
+        {
+           iH264InitBuffer = ((PVMFOMXDecPort*)iInPort)->getTrackConfig();
+           iH264InitBufSize = (int32)((PVMFOMXDecPort*)iInPort)->getTrackConfigSize();
+        }
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, "PVMFOMXVideoDecNode::InitDecoder() for H264 Decoder. Initialization data Size %d.", iH264InitBufSize));
 
-        PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, "PVMFOMXVideoDecNode::InitDecoder() for H264 Decoder. Initialization data Size %d.", initbufsize));
-
-        if (initbufsize > 0)
+        if (iH264InitBufSize > 0)
         {
 
             // there may be more than 1 NAL in config info in format specific data memfragment (SPS, PPS)
-            tmp_ptr = initbuffer;
+            tmp_ptr = iH264InitBuffer;
             do
             {
                 length = (uint16)(tmp_ptr[1] << 8) | tmp_ptr[0];
-                size += (length + 2);
-                if (size > initbufsize)
+                iH264FragSize += (length + 2);
+                if (iH264FragSize > iH264InitBufSize)
+                {
+                    iConfigInProgress = false;
                     break;
+                }
                 tmp_ptr += 2;
-
 
                 if (!SendConfigBufferToOMXComponent(tmp_ptr, length))
                 {
                     PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR,
                                     (0, "PVMFOMXVideoDecNode::InitDecoder() Error in processing config buffer"));
+                    iConfigInProgress = true;
+                    tmp_ptr -= 2;
+                    iH264FragSize -= (length + 2);
                     return false;
-
                 }
 
                 tmp_ptr += length;
-
+                iH264InitBuffer = tmp_ptr;
             }
-            while (size < initbufsize);
+            while (iH264FragSize < iH264InitBufSize);
         }
     }
     else if (Format == PVMF_MIME_M4V ||
@@ -1331,7 +1352,14 @@ OMX_ERRORTYPE PVMFOMXVideoDecNode::EventHandlerProcessing(OMX_OUT OMX_HANDLETYPE
                     {
                         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_ERR,
                                         (0, "PVMFOMXVideoDecNode::EventHandlerProcessing: OMX_CommandPortEnable - completed on port %d, resuming normal data flow", aData2));
-                        iProcessingState = EPVMFOMXBaseDecNodeProcessingState_ReadyToDecode;
+                        if(iConfigInProgress)
+                        {
+                            iProcessingState = EPVMFOMXBaseDecNodeProcessingState_InitDecoder;
+                        }
+                        else
+                        {
+                             iProcessingState = EPVMFOMXBaseDecNodeProcessingState_ReadyToDecode;
+                        }
                         iDynamicReconfigInProgress = false;
                         // in case pause or stop command was sent to component
                         // change processing state (because the node might otherwise
@@ -1505,6 +1533,37 @@ bool PVMFOMXVideoDecNode::QueueOutputBuffer(OsclSharedPtr<PVMFMediaDataImpl> &me
         // Set timestamp
         mediaDataOut->setTimestamp(iOutTimeStamp);
 
+        // If Duration is available, set the Duration Bit flag in MarkerInfo and set the duration
+        if ((iSampleDurationVec.size() > 0) && (iSampleDurationVec.back() > 0))
+        {
+            // continue this until iOutTimestamp matches the timestamp in the queue.
+            while (!(iTimestampVec.empty()) && (iOutTimeStamp > iTimestampVec.back()))
+            {
+                // continue discarding samples
+                iTimestampVec.pop_back();
+                iSampleDurationVec.pop_back();
+            }
+
+            // Go further only if the sample timestamp matches with the one in TimeStamp vector queue
+            if (iOutTimeStamp == iTimestampVec.back())
+            {
+                uint32 markerInfo = 0;
+                markerInfo |= mediaDataOut->getMarkerInfo();
+
+                //set the duration bit
+                markerInfo |= PVMF_MEDIA_DATA_MARKER_INFO_DURATION_AVAILABLE_BIT;
+                // set the markerInfo
+                mediaDataOut->setMarkerInfo(markerInfo);
+
+                // set the duration and then erase from SampleDurationVector
+                mediaDataOut->setDuration(iSampleDurationVec.back());
+                iSampleDurationVec.pop_back();
+
+                // also pop out the Timestamp from thw queue
+                iTimestampVec.pop_back();
+            }
+        }
+
         // Set Streamid
         mediaDataOut->setStreamID(iStreamID);
 
@@ -1557,7 +1616,7 @@ bool PVMFOMXVideoDecNode::QueueOutputBuffer(OsclSharedPtr<PVMFMediaDataImpl> &me
                     if (err != OsclErrNone)
                     {
                         PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_DEBUG,
-                                        (0, "PVMFOMXVideoDecNode::HandlePortReEnable - Problem to set FSI"));
+                                        (0, "PVMFOMXVideoDecNode::QueueOutputFrame - Problem to set FSI"));
                     }
 
                     alloc.deallocate((OsclAny*)(KvpKey));
@@ -1585,7 +1644,7 @@ bool PVMFOMXVideoDecNode::QueueOutputBuffer(OsclSharedPtr<PVMFMediaDataImpl> &me
 
 
         // in case of special YVU format, attach fsi to every outgoing message containing ptr to private data
-        if (iYUVFormat == PVMF_MIME_YUV420_SEMIPLANAR_YVU)
+        if ((iYUVFormat == PVMF_MIME_YUV420_SEMIPLANAR_YVU) || (iYUVFormat == PVMF_MIME_YUV420_SEMIPLANAR))
         {
             OsclRefCounterMemFrag privatedataFsiMemFrag;
 
@@ -2529,6 +2588,12 @@ PVMFStatus PVMFOMXVideoDecNode::DoCapConfigGetParametersSync(PvmiKeyType aIdenti
                 case 1: // "height"
                     aParameters[j].value.uint32_value = iNewHeight;
                     break;
+                case 2: // "display_width"
+                    aParameters[j].value.uint32_value = iYUVWidth;
+                    break;
+                case 3: // "display_height"
+                    aParameters[j].value.uint32_value = iYUVHeight;
+                    break;
                 default:
                     break;
             }
@@ -2955,6 +3020,19 @@ void PVMFOMXVideoDecNode::DoCapConfigSetParameters(PvmiKvp* aParameters, int aNu
         // Retrieve the first component from the key string
         char* compstr = NULL;
         pv_mime_string_extract_type(0, aParameters[paramind].key, compstr);
+
+        if ((pv_mime_strcmp(compstr, _STRLIT_CHAR("x-pvmf/video/render")) > 0) && compcount == 4)
+        {
+            PVMFStatus retval = DoVerifyAndSetVidRenderParameter(aParameters[paramind], true);
+            if (retval != PVMFSuccess)
+            {
+                aRetKVP = &aParameters[paramind];
+                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVMFOMXVideoDecNode::DoCapConfigSetParameters() Unsupported key"));
+                return;
+            }
+            // contine the for loop without parsing current key
+            continue;
+        }
 
         if ((pv_mime_strcmp(compstr, _STRLIT_CHAR("x-pvmf/video/decoder")) < 0) || compcount < 4)
         {
@@ -3751,6 +3829,65 @@ PVMFStatus PVMFOMXVideoDecNode::DoVerifyAndSetVideoDecNodeParameter(PvmiKvp& aPa
     return PVMFSuccess;
 }
 
+PVMFStatus PVMFOMXVideoDecNode::DoVerifyAndSetVidRenderParameter(PvmiKvp& aParameter, bool aSetParam)
+{
+    PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, "PVMFOMXVideoDecNode::DoVerifyAndSetVidRenderParameter() In"));
+
+    // Determine the valtype
+    PvmiKvpValueType keyvaltype = GetValTypeFromKeyString(aParameter.key);
+    if (keyvaltype == PVMI_KVPVALTYPE_UNKNOWN)
+    {
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVMFOMXVideoDecNode::DoVerifyAndSetVidRenderParameter() Valtype in key string unknown"));
+        return PVMFErrArgument;
+    }
+
+    char* compstr = NULL;
+    pv_mime_string_extract_type(3, aParameter.key, compstr);
+
+    int32 vrenderind;
+    for (vrenderind = 0; vrenderind < PVOMXVIDEODECNODECONFIG_RENDER_NUMKEYS; ++vrenderind)
+    {
+        if (pv_mime_strcmp(compstr, (char*)(PVOMXVideoDecNodeConfigRenderKeys[vrenderind].iString)) == 0)
+        {
+            // Break out of the for loop
+            break;
+        }
+    }
+
+    // Verify the valtype
+    if (keyvaltype != PVOMXVideoDecNodeConfigRenderKeys[vrenderind].iValueType)
+    {
+        PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVMFOMXVideoDecNode::DoVerifyAndSetVidRenderParameter() Valtype does not match for key"));
+        return PVMFErrArgument;
+    }
+
+    if (aSetParam)
+    {
+        switch (vrenderind)
+        {
+            case 0: // width
+                iStride = aParameter.value.uint32_value;
+                break;
+            case 1: // height
+                iSliceHeight = aParameter.value.uint32_value;
+                break;
+            case 2: // display_width
+                iYUVWidth = aParameter.value.uint32_value;
+                iUpstreamParsing = true;
+                break;
+            case 3: // display_height
+                iYUVHeight = aParameter.value.uint32_value;
+                iUpstreamParsing = true;
+                break;
+            default: // unsupported key
+                PVLOGGER_LOGMSG(PVLOGMSG_INST_HLDBG, iLogger, PVLOGMSG_ERR, (0, "PVMFOMXVideoDecNode::DoVerifyAndSetVidRenderParameter() Unsupported key or non-leaf node"));
+                return PVMFErrArgument;
+        }
+    }
+
+    PVLOGGER_LOGMSG(PVLOGMSG_INST_LLDBG, iLogger, PVLOGMSG_STACK_TRACE, (0, "PVMFOMXVideoDecNode::DoVerifyAndSetVidRenderParameter() Out"));
+    return PVMFSuccess;
+}
 
 PVMFStatus PVMFOMXVideoDecNode::DoVerifyAndSetH263DecoderParameter(PvmiKvp& aParameter, bool aSetParam)
 {

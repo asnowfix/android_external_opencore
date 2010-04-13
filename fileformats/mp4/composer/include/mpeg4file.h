@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -390,6 +391,7 @@ class PVA_FF_Mpeg4File : public PVA_FF_IMpeg4File, public PVA_FF_Parentable
         bool _oWMFTrack;
         bool _oMPEGTrack;
         bool _oPVMMTrack;
+        bool _o3GPP2Track;
 
         uint32 _fileAuthoringFlags;
         bool   _oInterLeaveEnabled;

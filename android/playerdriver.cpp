@@ -314,6 +314,13 @@ class PlayerDriver :
 
     // video display surface
     android::sp<android::ISurface> mSurface;
+
+    //Statistics
+    void SeekPosition(PVPPlaybackPosition seekpvpppos);
+    void PausePosition();
+    bool                    mStatistics;
+    nsecs_t                 iFFLS; //First Frame Latency start
+    bool                    mIsPausing;
 };
 
 PlayerDriver::PlayerDriver(PVPlayer* pvPlayer) :
@@ -330,7 +337,8 @@ PlayerDriver::PlayerDriver(PVPlayer* pvPlayer) :
         mIsLiveStreaming(false),
         mEmulation(false),
         mContentLengthKnown(false),
-        mLastBufferingLog(0)
+        mLastBufferingLog(0),
+        mIsPausing(false)
 {
     LOGV("constructor");
     mSyncSem = new OsclSemaphore();
@@ -370,6 +378,13 @@ PlayerDriver::PlayerDriver(PVPlayer* pvPlayer) :
 
     // mSyncSem will be signaled when the scheduler has started
     mSyncSem->Wait();
+
+    // Statistics profiling
+    mStatistics = false;
+    property_get("persist.debug.pv.statistics", value, "0");
+    if(atoi(value)) mStatistics = true;
+
+    if(mStatistics) iFFLS = systemTime(SYSTEM_TIME_MONOTONIC);
 }
 
 PlayerDriver::~PlayerDriver()
@@ -442,6 +457,10 @@ status_t PlayerDriver::enqueueCommand(PlayerCommand* command)
 
     // If we are in synchronous mode, wait for completion.
     if (syncsemcopy) {
+        if (code == PlayerCommand::PLAYER_CANCEL_ALL_COMMANDS)
+        {
+          RunIfNotReady();
+        }
         syncsemcopy->Wait();
         if (code == PlayerCommand::PLAYER_QUIT) {
             syncsemcopy->Close();
@@ -795,6 +814,7 @@ void PlayerDriver::handleSetVideoSurface(PlayerSetVideoSurface* command)
             return;
         }
         mVideoOutputMIO = mio;
+        if(mStatistics) mVideoOutputMIO->iFirstFrameLatencyStart = iFFLS;
 
         mVideoNode = PVMediaOutputNodeFactory::CreateMediaOutputNode(mVideoOutputMIO);
         mVideoSink = new PVPlayerDataSinkPVMFNode;
@@ -889,7 +909,7 @@ void PlayerDriver::handleStart(PlayerStart* command)
     // if we are paused, just resume
     PVPlayerState state;
     if (mPlayer->GetPVPlayerStateSync(state) == PVMFSuccess
-        && (state == PVP_STATE_PAUSED)) {
+        && (state == PVP_STATE_PAUSED) || mIsPausing) {
         if (mEndOfData) {
             // if we are at the end, seek to the beginning first
             mEndOfData = false;
@@ -903,6 +923,7 @@ void PlayerDriver::handleStart(PlayerStart* command)
         }
         OSCL_TRY(error, mPlayer->Resume(command));
         OSCL_FIRST_CATCH_ANY(error, commandFailed(command));
+        mIsPausing = false;
     } else {
         OSCL_TRY(error, mPlayer->Start(command));
         OSCL_FIRST_CATCH_ANY(error, commandFailed(command));
@@ -929,8 +950,19 @@ void PlayerDriver::handleSeek(PlayerSeek* command)
     begin.iMode = PVPPBPOS_MODE_NOW;
     end.iIndeterminate = true;
     mSeekPending = true;
+    if(mStatistics) PlayerDriver::SeekPosition(begin);
     OSCL_TRY(error, mPlayer->SetPlaybackRange(begin, end, false, command));
     OSCL_FIRST_CATCH_ANY(error, commandFailed(command));
+
+    // If the seek is issued from the prepare state (this is unique interms of bootup time
+    // Put the source node to pause state (This is to handle TCXO shutdown for hardware decoders).
+    // This state transition should be only handled for audio
+    if ((state == PVP_STATE_PREPARED) && (!mVideoOutputMIO)) {
+        LOGE("Seek is called in the prepared state, hence put the player to Pause state");
+        mPlayer->Pause(NULL);
+
+        mIsPausing = true;
+    }
 
     mEndOfData = false;
 }
@@ -1021,6 +1053,7 @@ void PlayerDriver::handlePause(PlayerPause* command)
     int error = 0;
     OSCL_TRY(error, mPlayer->Pause(command));
     OSCL_FIRST_CATCH_ANY(error, commandFailed(command));
+    if(mStatistics) PlayerDriver::PausePosition();
 }
 
 void PlayerDriver::handleRemoveDataSource(PlayerRemoveDataSource* command)
@@ -1151,7 +1184,7 @@ int PlayerDriver::playerThread()
 
     OMX_MasterDeinit();
     UninitializeForThread();
-    return 0;
+    return error;
 }
 
 /*static*/ void PlayerDriver::syncCompletion(status_t s, void *cookie, bool cancelled)
@@ -1417,8 +1450,9 @@ void PlayerDriver::HandleInformationalEvent(const PVAsyncInformationalEvent& aEv
             // there is any bug associated with it; Meanwhile, lets treat this as an error
             // since after playerdriver receives this event, playback session cannot be
             // recovered.
-            mPvPlayer->sendEvent(MEDIA_ERROR, ::android::MEDIA_ERROR_UNKNOWN,
-                                 PVMFInfoContentTruncated);
+            if(mDataSource->GetDataSourceFormatType() != PVMF_MIME_FORMAT_UNKNOWN)
+                mPvPlayer->sendEvent(MEDIA_ERROR, ::android::MEDIA_ERROR_UNKNOWN,
+                                     PVMFInfoContentTruncated);
             break;
 
         case PVMFInfoContentLength:
@@ -1706,7 +1740,11 @@ bool PVPlayer::isPlaying()
 
 status_t PVPlayer::getCurrentPosition(int *msec)
 {
-    return mPlayerDriver->enqueueCommand(new PlayerGetPosition(msec,0,0));
+    status_t ret = mPlayerDriver->enqueueCommand(new PlayerGetPosition(msec,0,0));
+    if (mDuration > 0 && *msec > mDuration) {
+        *msec = mDuration;
+    }
+    return ret;
 }
 
 status_t PVPlayer::getDuration(int *msec)
@@ -1814,3 +1852,20 @@ status_t PVPlayer::getMetadata(const media::Metadata::Filter& ids,
 }
 
 } // namespace android
+
+void PlayerDriver::SeekPosition(PVPPlaybackPosition seekpvpppos)
+{
+    LOGE("=====================================");
+    LOGE("PlayerDriver: Seek position = %d", seekpvpppos.iPosValue.millisec_value);
+    LOGE("=====================================");
+}
+
+void PlayerDriver::PausePosition()
+{
+    PVPPlaybackPosition profiling;
+    profiling.iPosUnit = PVPPBPOSUNIT_MILLISEC;
+    mPlayer->GetCurrentPositionSync(profiling);
+    LOGE("========================================");
+    LOGE("PlayerDriver Pause position = %d", profiling.iPosValue.millisec_value);
+    LOGE("========================================");
+}

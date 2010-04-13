@@ -29,6 +29,7 @@
 #ifndef CHUNKLARGEOFFSETATOM_H_INCLUDED
 #define CHUNKLARGEOFFSETATOM_H_INCLUDED
 
+#define PV_ERROR -1
 #ifndef OSCL_FILE_IO_H_INCLUDED
 #include "oscl_file_io.h"
 #endif
@@ -41,8 +42,6 @@ class ChunkLargeOffsetAtom : public FullAtom
 {
 
     public:
-        ChunkLargeOffsetAtom(uint8 version, uint32 flags); // Constructor
-        ChunkLargeOffsetAtom(ChunkLargeOffsetAtom atom); // Copy Constructor
         virtual ~ChunkLargeOffsetAtom();
 
         // Member gets and sets
@@ -57,21 +56,31 @@ class ChunkLargeOffsetAtom : public FullAtom
 
         // Adding to and getting first chunk offset values
         void addChunkOffset(uint64 offset);
-        vector<uint64>* getChunkOffsets()
-        {
-            return _pchunkOffsets;
-        }
-
-        // Rendering the Atom in proper format (bitlengths, etc.) to an ostream
-        virtual void renderToFileStream(ofstream &os);
-        // Reading in the Atom components from an input stream
-        virtual void readFromFileStream(ifstream &is);
-
 
     private:
+        bool ParseEntryUnit(uint32 sample_cnt);
         uint32 _entryCount;
-        vector<uint64>* _pchunkOffsets;
+        uint64* _pchunkOffsets;
 
+        int32 _mediaType;
+        uint32 _currentDataOffset;
+        MP4_FF_FILE *_fileptr;
+        uint32  _parsed_entry_cnt;
+
+        MP4_FF_FILE *_curr_fptr;
+        uint32 *_stbl_fptr_vec;
+        uint32 _stbl_buff_size;
+        uint32 _curr_entry_point;
+        uint32 _curr_buff_number;
+        uint32 _next_buff_number;
+        uint32 _parsingMode;
+
+    public:
+        ChunkLargeOffsetAtom(MP4_FF_FILE *fp, uint32 size, uint32 type,
+	                     OSCL_wString& filename,uint32 parsingMode);
+
+        int32 getChunkOffsetAt(int32 index);
+        int32 getChunkClosestToOffset(uint32 offSet, int32& index);
 };
 
 

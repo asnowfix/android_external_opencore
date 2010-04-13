@@ -23,6 +23,7 @@
 #include <media/thread_init.h>
 #include <core/SkBitmap.h>
 #include <private/media/VideoFrame.h>
+#include <cutils/properties.h>
 
 #include "metadatadriver.h"
 
@@ -459,6 +460,28 @@ VideoFrame* MetadataDriver::captureFrame()
     return NULL;
 }
 
+void MetadataDriver::deinterlaceChroma()
+{
+    int32 y_len = mFrameBufferProp.iFrameWidth*mFrameBufferProp.iFrameHeight;
+    uint8 chroma1_temp[y_len/4], chroma2_temp[y_len/4];
+    int32 offset=0;
+
+    for(int32 i = 0; i < y_len/4 ; i++)
+    {
+        //Obtain interlaced Cb and Cr values separately
+        chroma1_temp[i] = mFrameBuffer[y_len+offset];
+        chroma2_temp[i] = mFrameBuffer[y_len+offset+1];
+        offset +=2;
+    }
+
+    for(int32 i = y_len ; i < y_len*5/4 ; i++)
+    {
+        //Then copy all chroma values in planar format after Luma
+        mFrameBuffer[i] = chroma1_temp[i-y_len];
+        mFrameBuffer[i+y_len/4] = chroma2_temp[i-y_len];
+    }
+}
+
 void MetadataDriver::doColorConversion()
 {
     LOGV("doColorConversion");
@@ -468,6 +491,13 @@ void MetadataDriver::doColorConversion()
     int displayWidth  = mFrameBufferProp.iDisplayWidth;
     int displayHeight = mFrameBufferProp.iDisplayHeight;
     SkBitmap *bitmap = new SkBitmap();
+
+    //Deinterlace Chroma if the device is an msm7630_surf
+    //and if we are using hardware accelerated video decoder
+    char value[PROPERTY_VALUE_MAX];
+    property_get("ro.product.device",value,"0");
+    if(strcmp("msm7630_surf",value) == 0 && aHwAccelerated == true) deinterlaceChroma();
+
     if (!bitmap) {
         LOGE("doColorConversion: cannot instantiate a SkBitmap object.");
         return;
@@ -530,7 +560,8 @@ void MetadataDriver::handleCreate()
 {
     LOGV("handleCreate");
     int error = 0;
-    OSCL_TRY(error, mUtil = PVFrameAndMetadataFactory::CreateFrameAndMetadataUtility((char*)PVMF_MIME_YUV420, this, this, this, false));
+    aHwAccelerated = false;
+    OSCL_TRY(error, mUtil = PVFrameAndMetadataFactory::CreateFrameAndMetadataUtility((char*)PVMF_MIME_YUV420, this, this, this, aHwAccelerated));
     if (error || mUtil->SetMode(PV_FRAME_METADATA_INTERFACE_MODE_SOURCE_METADATA_AND_THUMBNAIL) != PVMFSuccess) {
         handleCommandFailure();
     } else {

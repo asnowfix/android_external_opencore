@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -925,9 +926,24 @@ OMX_BOOL PV_OMXConfigParser(
                 aInputs.iMimeType = PVMF_MIME_AMRWB;
 
             }
+            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.amrwbp"))
+            {
+                aInputs.iMimeType = PVMF_MIME_AMRWBP_IETF;
+
+            }
             else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.mp3"))
             {
                 aInputs.iMimeType = PVMF_MIME_MP3;
+
+            }
+            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.Qcelp13"))
+            {
+                aInputs.iMimeType = PVMF_MIME_QCELP;
+
+            }
+            else if (0 == oscl_strcmp(pInputs->cComponentRole, (OMX_STRING)"audio_decoder.evrc"))
+            {
+                aInputs.iMimeType = PVMF_MIME_EVRC;
 
             }
             else
@@ -1038,7 +1054,10 @@ OSCL_EXPORT_REF OMX_BOOL OMX_MasterConfigParser(
             }
 
             OMX_U32 index = pOMXMasterRegistry[ii].OMXCoreIndex;
-            if (pInterface[index]->GetpOMXConfigParser() == NULL)
+            if ((pInterface[index]->GetpOMXConfigParser() == NULL) ||
+                (0 == oscl_strncmp(((OMXConfigParserInputs*)aInputParameters)->cComponentRole,
+                                    (OMX_STRING)"audio_decoder.aac",
+                                    oscl_strlen("audio_decoder.aac"))))
             {
                 //The OMX core does not have config parser - use PV config parser
                 Status = PV_OMXConfigParser(aInputParameters, aOutputParameters);

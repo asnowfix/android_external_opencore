@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,6 +69,9 @@
 #if BUILD_MP3_FF_PARSER_NODE
 #include "pvmf_mp3ffparser_factory.h"
 #endif
+#if 1 //BUILD_QCP_FF_PARSER_NODE
+#include "pvmf_qcpffparser_factory.h"
+#endif
 #if BUILD_WAV_FF_PARSER_NODE
 #include "pvmf_wavffparser_factory.h"
 #endif
@@ -105,6 +109,9 @@
 #endif
 #if BUILD_MP3_FF_REC
 #include "pvmp3ffrec_factory.h"
+#endif
+#if 1 //BUILD_QCP_FF_REC
+#include "pvqcpffrec_factory.h"
 #endif
 #if BUILD_WAV_FF_REC
 #include "pvwavffrec_factory.h"
@@ -163,6 +170,7 @@ void PVPlayerRegistryPopulator::RegisterAllNodes(PVPlayerNodeRegistryInterface* 
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMR);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMRWB_IETF);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMRWB);
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_AMRWBP_IETF);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMR_IF2);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_MPEG4_AUDIO);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_3640);
@@ -171,6 +179,8 @@ void PVPlayerRegistryPopulator::RegisterAllNodes(PVPlayerNodeRegistryInterface* 
     nodeinfo.iInputTypes.push_back(PVMF_MIME_LATM);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_WMA);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_MP3);
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_QCELP);
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_EVRC);
     nodeinfo.iNodeUUID = KPVMFOMXAudioDecNodeUuid;
     nodeinfo.iOutputType.clear();
     nodeinfo.iOutputType.push_back(PVMF_MIME_PCM16);
@@ -255,6 +265,7 @@ void PVPlayerRegistryPopulator::RegisterAllNodes(PVPlayerNodeRegistryInterface* 
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMR);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMRWB_IETF);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMRWB);
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_AMRWBP_IETF);
     nodeinfo.iInputTypes.push_back(PVMF_MIME_AMR_IF2);
     nodeinfo.iNodeUUID = KPVMFGSMAmrNodeUuid;
     nodeinfo.iOutputType.clear();
@@ -343,6 +354,17 @@ void PVPlayerRegistryPopulator::RegisterAllNodes(PVPlayerNodeRegistryInterface* 
     nodeinfo.iOutputType.push_back(PVMF_MIME_FORMAT_UNKNOWN);
     nodeinfo.iNodeCreateFunc = PVMFMP3FFParserNodeFactory::CreatePVMFMP3FFParserNode;
     nodeinfo.iNodeReleaseFunc = PVMFMP3FFParserNodeFactory::DeletePVMFMP3FFParserNode;
+    aRegistry->RegisterNode(nodeinfo);
+#endif
+#if 1 //BUILD_QCP_FF_PARSER_NODE
+    //For PVMFQCPFFParserNode
+    nodeinfo.iInputTypes.clear();
+    nodeinfo.iInputTypes.push_back(PVMF_MIME_QCPFF);
+    nodeinfo.iNodeUUID = KPVMFQCPFFParserNodeUuid;
+    nodeinfo.iOutputType.clear();
+    nodeinfo.iOutputType.push_back(PVMF_MIME_FORMAT_UNKNOWN);
+    nodeinfo.iNodeCreateFunc = PVMFQCPFFParserNodeFactory::CreatePVMFQCPFFParserNode;
+    nodeinfo.iNodeReleaseFunc = PVMFQCPFFParserNodeFactory::DeletePVMFQCPFFParserNode;
     aRegistry->RegisterNode(nodeinfo);
 #endif
 #if BUILD_WAV_FF_PARSER_NODE
@@ -521,6 +543,20 @@ void PVPlayerRegistryPopulator::RegisterAllRecognizers(PVPlayerRecognizerRegistr
     else
     {
         OSCL_DELETE(((PVMP3FFRecognizerFactory*)tmpfac));
+        tmpfac = NULL;
+        return;
+    }
+#endif
+#if 1 //BUILD_QCP_FF_REC
+    tmpfac = OSCL_STATIC_CAST(PVMFRecognizerPluginFactory*, OSCL_NEW(PVQCPFFRecognizerFactory, ()));
+    if (PVMFRecognizerRegistry::RegisterPlugin(*tmpfac) == PVMFSuccess)
+    {
+        aRegistry->RegisterRecognizer(tmpfac);
+        nodeList->push_back(tmpfac);
+    }
+    else
+    {
+        OSCL_DELETE(((PVQCPFFRecognizerFactory*)tmpfac));
         tmpfac = NULL;
         return;
     }

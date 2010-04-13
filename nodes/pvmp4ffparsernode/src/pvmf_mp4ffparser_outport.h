@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -149,6 +150,8 @@ class PVMP4FFNodeTrackPortInfo : public OsclMemPoolFixedChunkAllocatorObserver,
             iSendBOS = false;
 
             iNumAMRSamplesToRetrieve = 0;
+            iNumQCELPSamplesToRetrieve = 0;
+            iNumEVRCSamplesToRetrieve = 0;
             iCurrentTextSampleEntryIndex = 0;
 
             /* bitstream logging */
@@ -198,6 +201,8 @@ class PVMP4FFNodeTrackPortInfo : public OsclMemPoolFixedChunkAllocatorObserver,
             iSendBOS = aSrc.iSendBOS;
 
             iNumAMRSamplesToRetrieve = aSrc.iNumAMRSamplesToRetrieve;
+            iNumQCELPSamplesToRetrieve = aSrc.iNumQCELPSamplesToRetrieve;
+            iNumEVRCSamplesToRetrieve = aSrc.iNumEVRCSamplesToRetrieve;
             iCurrentTextSampleEntryIndex = aSrc.iCurrentTextSampleEntryIndex;
             iCurrentTextSampleEntry = aSrc.iCurrentTextSampleEntry;
 
@@ -319,6 +324,10 @@ class PVMP4FFNodeTrackPortInfo : public OsclMemPoolFixedChunkAllocatorObserver,
         // Format specific variables
         // AMR track
         uint32 iNumAMRSamplesToRetrieve;
+        // QCELP track
+        uint32 iNumQCELPSamplesToRetrieve;
+        // EVRC track
+        uint32 iNumEVRCSamplesToRetrieve;
         // Timed text track
         uint32 iCurrentTextSampleEntryIndex;
         OsclSharedPtr<PVMFTimedTextSampleEntry> iCurrentTextSampleEntry;

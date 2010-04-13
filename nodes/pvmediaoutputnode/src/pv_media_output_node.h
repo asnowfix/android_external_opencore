@@ -407,6 +407,10 @@ class PVMediaOutputNode : public OsclActiveObject,
 
         uint32 iRecentBOSStreamID;
         PVMFStatus CheckForBOS();
+
+        //Statistics
+        void FramesDroppedProfiling();
+        bool mStatistics;
 };
 
 

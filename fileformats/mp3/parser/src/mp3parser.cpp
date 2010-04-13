@@ -702,7 +702,7 @@ MP3ErrorType MP3Parser::ScanMP3File(PVFile * fpUsed, uint32 aFramesToScan)
     MP3ConfigInfoType mp3ConfigInfo;
 
     if (iClipDurationFromMetadata || (iClipDurationFromVBRIHeader &&
-                                      ((iVbriHeader.entriesTOC >= 0) ||
+                                      ((iVbriHeader.entriesTOC > 0) ||
                                        (iXingHeader.flags & TOC_FLAG)))
        )
     {
@@ -857,7 +857,7 @@ MP3ErrorType MP3Parser::ScanMP3File(PVFile * fpUsed, uint32 aFramesToScan)
 
         MP3Utils::SeektoOffset(fpUsed, mp3ConfigInfo.FrameLengthInBytes - MP3_FRAME_HEADER_SIZE, Oscl_File::SEEKCUR);
         bitrate = mp3ConfigInfo.BitRate;
-        frameDur = frameDur + (uint32)((OsclFloat) mp3ConfigInfo.FrameLengthInBytes * 8000.00f / mp3ConfigInfo.BitRate);
+        frameDur = frameDur + (uint32)((OsclFloat) mp3ConfigInfo.FrameLengthInBytes * 8000.00f * 1000 / mp3ConfigInfo.BitRate);
         iLastScanPosition = fpUsed->Tell();
         numFrames++;
         iScannedFrameCount++;
@@ -887,7 +887,7 @@ MP3ErrorType MP3Parser::ScanMP3File(PVFile * fpUsed, uint32 aFramesToScan)
         // If happens return Duration Present to avoid any further ScanMp3File calls.
         return MP3_DURATION_PRESENT;
     }
-    iScanTimestamp = iScanTimestamp + frameDur;
+    iScanTimestamp = iScanTimestamp + (uint32)(frameDur / 1000);
 
     return MP3_SUCCESS;
 }
@@ -3030,14 +3030,13 @@ MP3ErrorType MP3Parser::FillTOCTable(uint32 aFilePos, uint32 aTimeStampToFrame)
         return MP3_SUCCESS;
     }
 
-    if ((iTOCFilledCount < MAX_TOC_ENTRY_COUNT) && ((aTimeStampToFrame - iTimestampPrev) >= iBinWidth))
+    // ignore difference of 25ms in timestamp
+    if ((iTOCFilledCount < MAX_TOC_ENTRY_COUNT) && ((aTimeStampToFrame - iTimestampPrev + 25) >= iBinWidth))
     {
-        if (iTimestampPrev != aTimeStampToFrame)
+        // iBinWidth should only be set here once
+        if (iBinWidth == 0 && (iTimestampPrev < aTimeStampToFrame))
         {
-            if ((aTimeStampToFrame - iTimestampPrev) > iBinWidth)
-            {
-                iBinWidth = aTimeStampToFrame - iTimestampPrev;
-            }
+            iBinWidth = aTimeStampToFrame - iTimestampPrev;
         }
         // push the file offset into TOC table
         iTOC[iTOCFilledCount] = aFilePos - StartOffset;

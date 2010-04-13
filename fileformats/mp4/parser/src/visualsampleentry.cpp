@@ -37,45 +37,60 @@
 VisualSampleEntry::VisualSampleEntry(MP4_FF_FILE *fp, uint32 size, uint32 type)
         : SampleEntry(fp, size, type)
 {
+    uint32 count = _size - DEFAULT_ATOM_SIZE - getSampleEntrySize();
+
     _pes = NULL;
 
     if (_success)
     {
         _pparent = NULL;
+        _success = false;
+        _mp4ErrorCode = READ_VISUAL_SAMPLE_ENTRY_FAILED;
 
         // Read in all reserved members
         for (int32 i = 0; i < 4; i++)
         {
             if (!AtomUtils::read32(fp, _reserved1[i]))
             {
-                _success = false;
-                break;
+                return;
             }
+            count -= 4;
         }
 
-        if (_success)
+        if (!AtomUtils::read32read32(fp, _reserved2, _reserved3))
         {
-            if (!AtomUtils::read32read32(fp, _reserved2, _reserved3))
-                _success = false;
-            if (!AtomUtils::read32read32(fp, _reserved4, _reserved5))
-                _success = false;
-            if (!AtomUtils::read16(fp, _reserved6))
-                _success = false;
+            return;
+        }
+        count -= 8;
 
-            for (int32 i = 0; i < 32; i++)
+        if (!AtomUtils::read32read32(fp, _reserved4, _reserved5))
+        {
+            return;
+        }
+        count -= 8;
+
+        if (!AtomUtils::read16(fp, _reserved6))
+        {
+            return;
+        }
+        count -= 2;
+
+        for (int32 i = 0; i < 32; i++)
+        {
+            if (!AtomUtils::read8(fp, _reserved7[i]))
             {
-                if (!AtomUtils::read8(fp, _reserved7[i]))
-                {
-                    _success = false;
-                    break;
-                }
+                return;
             }
-
-            if (!AtomUtils::read16read16(fp, _reserved8, _reserved9))
-                _success = false;
+            count -= 1;
         }
 
-        if (_success)
+        if (!AtomUtils::read16read16(fp, _reserved8, _reserved9))
+        {
+            return;
+        }
+        count -= 4;
+
+        while (count >= DEFAULT_ATOM_SIZE)
         {
             uint32 atomType = UNKNOWN_ATOM;
             uint32 atomSize = 0;
@@ -89,7 +104,7 @@ VisualSampleEntry::VisualSampleEntry(MP4_FF_FILE *fp, uint32 size, uint32 type)
                 if (!_pes->MP4Success())
                 {
                     _mp4ErrorCode = _pes->GetMP4Error();
-                    _success = false;
+                    return;
                 }
                 else
                 {
@@ -111,23 +126,46 @@ VisualSampleEntry::VisualSampleEntry(MP4_FF_FILE *fp, uint32 size, uint32 type)
                     }
                     _pes->setParent(this);
                 }
+                count -= atomSize;
             }
             else
             {
-                _success = false;
-                _mp4ErrorCode = READ_VISUAL_SAMPLE_ENTRY_FAILED;
+                if (atomSize < DEFAULT_ATOM_SIZE)
+                {
+                    _mp4ErrorCode = ZERO_OR_NEGATIVE_ATOM_SIZE;
+                    return;
+                }
+
+                if (count < (uint32)atomSize)
+                {
+                    _mp4ErrorCode = READ_FAILED;
+                    break;
+                }
+
+                /* skip any unrecognized atoms here */
+                count -= atomSize;
+                atomSize -= DEFAULT_ATOM_SIZE;
+                AtomUtils::seekFromCurrPos(fp, atomSize);
             }
         }
-        else
+
+        if (count > 0)
         {
-            _mp4ErrorCode = READ_VISUAL_SAMPLE_ENTRY_FAILED;
+            //skip over any left over bytes
+            AtomUtils::seekFromCurrPos(fp, count);
+            count = 0;
+        }
+
+        /*
+         * ESD atom is mandatory. In case any of it is absent
+         * return ERROR!!!
+         */
+        if (_pes != NULL)
+        {
+            _success = true;
+            _mp4ErrorCode = EVERYTHING_FINE;
         }
     }
-    else
-    {
-        _mp4ErrorCode = READ_VISUAL_SAMPLE_ENTRY_FAILED;
-    }
-
 }
 
 // Destructor

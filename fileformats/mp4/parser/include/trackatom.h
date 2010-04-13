@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -701,6 +702,30 @@ class TrackAtom : public Atom
             }
         }
 
+        int32 getNumQCELPFramesPerSample()
+        {
+            if (_pmediaAtom != NULL)
+            {
+                return (_pmediaAtom->getNumQCELPFramesPerSample());
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        int32 getNumEVRCFramesPerSample()
+        {
+            if (_pmediaAtom != NULL)
+            {
+                return (_pmediaAtom->getNumEVRCFramesPerSample());
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
         MP4_ERROR_CODE getMaxTrackTimeStamp(uint32 fileSize, uint32& timeStamp)
         {
             if (_pmediaAtom != NULL)
@@ -794,6 +819,19 @@ class TrackAtom : public Atom
         int32  _pMediaType;
 
         OMADRMKMSBox* _pOMADRMKMSBox;
+
+    public:
+        uint32 getNumReadKeyFrames()
+        {
+            if (_pmediaAtom != NULL)
+            {
+                return _pmediaAtom->getNumReadKeyFrames();
+            }
+            else
+            {
+                return 0;
+            }
+	    }
 };
 
 #endif // TRACKATOM_H_INCLUDED

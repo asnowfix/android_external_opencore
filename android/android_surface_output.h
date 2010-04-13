@@ -330,6 +330,12 @@ protected:
         PVProfile PVOmapVideoProfile;
 #endif
 
+public:
+    //Statistics profiling
+    void FirstFrameLatency();
+    bool mStatistics;
+    bool iFirstFrameLatency;
+    nsecs_t iFirstFrameLatencyStart;
 };
 
 #endif // ANDROID_SURFACE_OUTPUT_H_INCLUDED

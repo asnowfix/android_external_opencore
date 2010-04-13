@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,8 +59,11 @@
 
 #define K3gpComposerMimeType "/x-pvmf/ff-mux/3gp"
 #define KMP4ComposerMimeType "/x-pvmf/ff-mux/mp4"
+#define KQCPComposerMimeType "/x-pvmf/ff-mux/qcp" // Added QCP support
 #define KAmrNbEncMimeType "/x-pvmf/audio/encode/amr-nb"
 #define KAMRWbEncMimeType "/x-pvmf/audio/encode/amr-wb"
+#define kEVRCEncMimeType  "/x-pvmf/audio/encode/evrc" // QCELP / EVRC codec support
+#define kQCELPEncMimeType "/x-pvmf/audio/encode/qcelp"
 #define KH263EncMimeType "/x-pvmf/video/encode/h263"
 #define KH264EncMimeType "/x-pvmf/video/encode/h264"
 #define KMp4EncMimeType "/x-pvmf/video/encode/mp4"
@@ -277,7 +281,7 @@ class PVAuthorEngine : public PVAuthorEngineInterface,
         /**
          * Check if the specified format is supported
          */
-        PVMFStatus IsCompressedFormatDataSource(PVAENodeContainer* aDataSrc, bool& aIsCompressedFormat);
+        PVMFStatus IsCompressedFormatDataSource(PVAENodeContainer* aDataSrc, bool& aIsCompressedFormat,PvmfMimeString& aMimeType);
 
         /**
          * Resets the graph.  All nodes will be disconnected.

@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -146,6 +147,7 @@ const uint32    SAMPLE_DESCRIPTION_ATOM = FourCharConstToUint32('s', 't', 's', '
 const uint32    SAMPLE_SIZE_ATOM = FourCharConstToUint32('s', 't', 's', 'z');
 const uint32    SAMPLE_TO_CHUNK_ATOM = FourCharConstToUint32('s', 't', 's', 'c');
 const uint32    CHUNK_OFFSET_ATOM = FourCharConstToUint32('s', 't', 'c', 'o');
+const uint32    CHUNK_LARGE_OFFSET_ATOM = FourCharConstToUint32('c','o','6','4');
 const uint32    SYNC_SAMPLE_ATOM = FourCharConstToUint32('s', 't', 's', 's');
 const uint32    SHADOW_SYNC_SAMPLE_ATOM = FourCharConstToUint32('s', 't', 's', 'h');
 const uint32    DEGRADATION_PRIORITY_ATOM = FourCharConstToUint32('s', 't', 'd', 'p');
@@ -173,9 +175,15 @@ const uint32    VIDEO_SAMPLE_ENTRY = FourCharConstToUint32('m', 'p', '4', 'v');
 
 const uint32    AMR_SAMPLE_ENTRY_ATOM = FourCharConstToUint32('s', 'a', 'm', 'r');
 const uint32    AMRWB_SAMPLE_ENTRY_ATOM = FourCharConstToUint32('s', 'a', 'w', 'b');
+const uint32    AMRWBP_SAMPLE_ENTRY_ATOM = FourCharConstToUint32('s', 'a', 'w', 'p');
+const uint32    QCELP_SAMPLE_ENTRY_ATOM = FourCharConstToUint32('s', 'q', 'c', 'p');
+const uint32    EVRC_SAMPLE_ENTRY_ATOM = FourCharConstToUint32('s', 'e', 'v', 'c');
 const uint32    H263_SAMPLE_ENTRY_ATOM = FourCharConstToUint32('s', '2', '6', '3');
 
 const uint32    AMR_SPECIFIC_ATOM = FourCharConstToUint32('d', 'a', 'm', 'r');
+const uint32    AMRWBP_SPECIFIC_ATOM = FourCharConstToUint32('d', 'a', 'w', 'p');
+const uint32    QCELP_SPECIFIC_ATOM = FourCharConstToUint32('d', 'q', 'c', 'p');
+const uint32    EVRC_SPECIFIC_ATOM = FourCharConstToUint32('d', 'e', 'v', 'c');
 const uint32    H263_SPECIFIC_ATOM = FourCharConstToUint32('d', '2', '6', '3');
 const uint32    H263_BITRATE_ATOM = FourCharConstToUint32('b', 'i', 't', 'r');
 
@@ -343,11 +351,17 @@ typedef enum
 typedef enum
 {
     AMR_AUDIO   = 0xd0,
-    QCELP_MP4   = 0xE1,
+    QCELP_MP4	= 0xE1,
+    EVRC_MP4	= 0xA0,
     MPEG4_AUDIO = 0x40,
     MPEG2_AUDIO_LC = 0x67,
     MPEG4_VIDEO = 0x20,
     H263_VIDEO  = 0xc0,
+    /* selected from user private range 0xE2 - 0xFE */
+    /* http://www.mp4ra.org/object.html */
+    AMRWBP_AUDIO_3GPP = 0xF7,
+    QCELP_AUDIO_3GPP2 = 0xF8,
+    EVRC_AUDIO_3GPP2 = 0xF9,
     AMRWB_AUDIO_3GPP = 0xFA,
     AVC_VIDEO   = 0xFB,
     AMR_AUDIO_3GPP = 0xFC,

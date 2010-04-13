@@ -36,6 +36,8 @@ OSCL_DLL_ENTRY_POINT_DEFAULT()
 //The factory functions.
 #include "oscl_mem.h"
 
+#include <cutils/properties.h>
+
 using namespace android;
 
 OSCL_EXPORT_REF AndroidSurfaceOutput::AndroidSurfaceOutput() :
@@ -48,7 +50,20 @@ OSCL_EXPORT_REF AndroidSurfaceOutput::AndroidSurfaceOutput() :
     mPvPlayer = NULL;
     mEmulation = false;
     iEosReceived = false;
-    mNumberOfFramesToHold = 2;
+
+    //Statistics profiling
+    char value[PROPERTY_VALUE_MAX];
+    mStatistics = false;
+    iFirstFrameLatency = true;
+    iFirstFrameLatencyStart = 0;
+    property_get("persist.debug.pv.statistics", value, "0");
+    if(atoi(value)) mStatistics = true;
+    property_get("ro.product.device",value,"0");
+    if(strcmp("msm7627_surf",value) == 0 || strcmp("msm7627_ffa",value) == 0 ||
+       strcmp("msm7625_surf",value) == 0 || strcmp("msm7625_ffa",value) == 0)
+        mNumberOfFramesToHold = 1;
+    else
+        mNumberOfFramesToHold = 2;
 }
 
 status_t AndroidSurfaceOutput::set(PVPlayer* pvPlayer, const sp<ISurface>& surface, bool emulation)
@@ -348,13 +363,6 @@ PVMFCommandId AndroidSurfaceOutput::Pause(const OsclAny* aContext)
 
         iState=STATE_PAUSED;
         status=PVMFSuccess;
-
-        // post last buffer to prevent stale data
-        // if not configured, PVMFMIOConfigurationComplete is not sent
-        // there should not be any media data.
-    if(iIsMIOConfigured) { 
-        postLastFrame();
-        }
         break;
 
     default:
@@ -423,7 +431,7 @@ PVMFCommandId AndroidSurfaceOutput::DiscardData(PVMFTimestamp aTimestamp, const 
     //needed here.
 
     PVMFStatus status=PVMFSuccess;
-    processWriteResponseQueue(0);
+    processWriteResponseQueue(1);
 
     CommandResponse resp(status,cmdid,aContext);
     QueueCommandResponse(resp);
@@ -643,6 +651,8 @@ PVMFCommandId AndroidSurfaceOutput::writeAsync(uint8 aFormatType, int32 aFormatI
 
                 // Call playback to send data to IVA for Color Convert
                 status = writeFrameBuf(aData, aDataLen, data_header_info);
+
+                if (mStatistics && iFirstFrameLatency) FirstFrameLatency();
 
                 PVLOGGER_LOGMSG(PVLOGMSG_INST_REL, iLogger, PVLOGMSG_ERR,
                    (0,"AndroidSurfaceOutput::writeAsync: Playback Progress - frame %d",iFrameNumber++));
@@ -935,6 +945,7 @@ void AndroidSurfaceOutput::Run()
     if (iEosReceived) {
         LOGV("Flushing buffers after EOS");
         processWriteResponseQueue(0);
+        iEosReceived = false;
     } else {
         processWriteResponseQueue(mNumberOfFramesToHold);
     }
@@ -1048,4 +1059,12 @@ OSCL_EXPORT_REF bool AndroidSurfaceOutput::GetVideoSize(int *w, int *h) {
     *w = iVideoDisplayWidth;
     *h = iVideoDisplayHeight;
     return iVideoDisplayWidth != 0 && iVideoDisplayHeight != 0;
+}
+
+OSCL_EXPORT_REF void AndroidSurfaceOutput::FirstFrameLatency()
+{
+    LOGE("================================================================");
+    LOGE("AndroidSurfaceOutput First Frame Latency = %d", (int32)((systemTime(SYSTEM_TIME_MONOTONIC) - iFirstFrameLatencyStart) / (ms2ns(1))));
+    LOGE("================================================================");
+    iFirstFrameLatency = false;
 }

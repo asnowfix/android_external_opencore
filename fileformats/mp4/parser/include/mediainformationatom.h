@@ -1,5 +1,6 @@
 /* ------------------------------------------------------------------
  * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (c) 2009, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -591,6 +592,30 @@ class MediaInformationAtom : public Atom
             }
         }
 
+        int32 getNumQCELPFramesPerSample()
+        {
+            if (_psampleTableAtom != NULL)
+            {
+                return (_psampleTableAtom->getNumQCELPFramesPerSample());
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
+        int32 getNumEVRCFramesPerSample()
+        {
+            if (_psampleTableAtom != NULL)
+            {
+                return (_psampleTableAtom->getNumEVRCFramesPerSample());
+            }
+            else
+            {
+                return 0;
+            }
+        }
+
         MP4_ERROR_CODE getMaxTrackTimeStamp(uint32 fileSize, uint32& timeStamp)
         {
             if (_psampleTableAtom != NULL)
@@ -685,6 +710,19 @@ class MediaInformationAtom : public Atom
 
         uint32 _trackStartOffset;
 
+    public:
+        uint32 getNumReadKeyFrames()
+        {
+            if (_psampleTableAtom != NULL)
+            {
+                return (_psampleTableAtom->getNumReadKeyFrames());
+            }
+            else
+            {
+                return 0;
+            }
+
+        }
 };
 
 #endif // MEDIAINFORMATIONATOM_H_INCLUDED

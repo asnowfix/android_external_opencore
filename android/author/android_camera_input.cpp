@@ -585,6 +585,60 @@ PVMFStatus AndroidCameraInput::getParametersSync(PvmiMIOSession session,
         }
         params [0].value.key_specific_value = (PVInterface*)&mbufferAlloc;
         status = PVMFSuccess;
+
+        sp<IMemory> Frame = NULL;
+        size_t alignedSize;
+        if( mCamera != NULL) {
+            mCamera->getBufferInfo(Frame, &alignedSize);
+        } else {
+            LOGE(" getParametersSync : mCamera Handle is NULL ");
+        }
+        if( Frame != NULL ) {
+            ssize_t offset = 0;
+            size_t size = 0;
+            sp<IMemoryHeap> heap = Frame->getMemory(&offset, &size);
+            LOGV("getParametersSync: pmem_fd = %d, base = %p, offset = %ld, " \
+                 " size = %d alignedSize = %d pointer %p Total Size = %d", heap->getHeapID(), heap->base(),
+                  offset, size, alignedSize, Frame->pointer(), heap->getSize());
+
+            mbufferAlloc.setNumBuffers((heap->getSize()/alignedSize));
+            mbufferAlloc.setBufferSize(size);
+        } else {
+            LOGE("getParametersSync : Received NULL info ");
+        }
+    }
+    else if (!pv_mime_strcmp(identifier, PVMF_PMEM_BUFFER_INFO_KEY)) {
+        num_params = PVMF_NUM_PMEM_BUFFER_INFO_PARAMS;
+        status = AllocateKvp(params, (PvmiKeyType)PVMF_PMEM_BUFFER_INFO_KEY, num_params);
+        if (!params )
+        {
+            OSCL_LEAVE(OsclErrNoMemory);
+            return PVMFErrNoMemory;
+        }
+
+        sp<IMemory> Frame = NULL;
+        size_t alignedSize;
+        if( mCamera != NULL) {
+            mCamera->getBufferInfo(Frame, &alignedSize);
+        } else {
+            LOGE(" getParametersSync : mCamera Handle is NULL ");
+        }
+        if( Frame != NULL ) {
+            ssize_t offset = 0;
+            size_t size = 0;
+            sp<IMemoryHeap> heap = Frame->getMemory(&offset, &size);
+            LOGV("getParametersSync: pmem_fd = %d, base = %p, offset = %ld, " \
+                 " size = %d alignedSize = %d pointer %p Total Size = %d", heap->getHeapID(), heap->base(),
+                  offset, size, alignedSize, Frame->pointer(), heap->getSize());
+            params [0].value.int32_value = heap->getSize()/alignedSize; // Num PMem buffers
+            params [1].value.int32_value = heap->getHeapID();           // PMem FD
+            params [2].value.pUint8_value = (uint8*)heap->base();       // PMem buffer base pointer
+            params [3].value.int32_value = alignedSize;                 // Individual buffer size
+
+            status = PVMFSuccess;
+        } else {
+            LOGE("getParametersSync : Received NULL info ");
+        }
     }
 
     return status;
@@ -1113,6 +1167,8 @@ PVMFStatus AndroidCameraInput::VerifyAndSetParameter(PvmiKvp* aKvp,
         iAuthorClock = (PVMFMediaClock*)aKvp->value.key_specific_value;
         return PVMFSuccess;
     }
+	else if (pv_mime_strcmp(aKvp->key, PVMF_MEDIA_INPUT_NODE_CAP_CONFIG_INTERFACE_KEY) == 0)
+	    return PVMFSuccess;		
 
     LOGE("Unsupported parameter(%s)", aKvp->key);
     return PVMFFailure;
